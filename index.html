@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlexBelog — Заказы игр</title>
+  <meta name="description" content="Сайт заявок и очереди игр для стримов AlexBelog" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#home">
+        <span class="brand-mark">AB</span>
+        <span>
+          <strong>AlexBelog</strong>
+          <small>Очередь игр для стримов</small>
+        </span>
+      </a>
+      <nav class="nav">
+        <a href="#queue">Очередь</a>
+        <a href="#submit">Предложить игру</a>
+        <a href="#rules">Правила</a>
+        <button id="open-admin" class="button ghost small">Админ</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div class="container hero-grid">
+        <div>
+          <span class="eyebrow">BERLOGA REQUESTS</span>
+          <h1>Предлагай игры, поддерживай заявки и следи за очередью стримов.</h1>
+          <p class="hero-text">
+            Поддержка влияет на приоритет, но не заменяет расписание, правила платформы и здравый смысл.
+            Всё прозрачно: заявки, статусы, ближайшие слоты и история запусков.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#submit">Предложить игру</a>
+            <a class="button" href="#queue">Смотреть очередь</a>
+          </div>
+          <div class="hero-stats">
+            <div><strong id="stat-approved">0</strong><span>одобрено</span></div>
+            <div><strong id="stat-scheduled">0</strong><span>назначено</span></div>
+            <div><strong id="stat-done">0</strong><span>завершено</span></div>
+          </div>
+        </div>
+        <aside class="highlight-card">
+          <div class="card-head">
+            <span class="pill accent">Ближайшие слоты</span>
+            <span class="muted">live queue</span>
+          </div>
+          <div id="scheduled-list" class="scheduled-list"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="queue">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">ПУБЛИЧНАЯ ОЧЕРЕДЬ</span>
+            <h2>Игры на рассмотрении и в работе</h2>
+          </div>
+          <div class="actions-row">
+            <input id="search-input" class="input" type="search" placeholder="Поиск по названию или жанру" />
+            <select id="status-filter" class="input select">
+              <option value="all">Все статусы</option>
+            </select>
+            <select id="sort-select" class="input select">
+              <option value="priority">По приоритету</option>
+              <option value="newest">Сначала новые</option>
+              <option value="title">По названию</option>
+            </select>
+          </div>
+        </div>
+        <div id="queue-grid" class="queue-grid"></div>
+      </div>
+    </section>
+
+    <section class="section alt" id="submit">
+      <div class="container form-grid">
+        <div>
+          <span class="eyebrow">НОВАЯ ЗАЯВКА</span>
+          <h2>Предложить игру на стрим</h2>
+          <p class="section-text">
+            Заявка сначала проходит модерацию. Одобрение не означает моментальный запуск,
+            а поддержка заявки влияет на её место в очереди.
+          </p>
+          <ul class="feature-list">
+            <li>Форматы: первый взгляд, слот на 1 стрим, мини-серия, полное прохождение</li>
+            <li>Можно приложить ссылку на Steam, сайт или трейлер</li>
+            <li>Ты увидишь статус заявки в публичной очереди после модерации</li>
+          </ul>
+        </div>
+        <form id="submit-form" class="panel form-panel">
+          <div class="grid two">
+            <label>
+              <span>Название игры</span>
+              <input class="input" name="title" required />
+            </label>
+            <label>
+              <span>Твой ник</span>
+              <input class="input" name="viewer_name" required />
+            </label>
+          </div>
+          <div class="grid two">
+            <label>
+              <span>Жанр</span>
+              <input class="input" name="genre" placeholder="Soulslike, horror, co-op..." />
+            </label>
+            <label>
+              <span>Примерная длительность</span>
+              <input class="input" name="estimated_hours" type="number" min="1" max="500" placeholder="10" />
+            </label>
+          </div>
+          <div class="grid two">
+            <label>
+              <span>Формат</span>
+              <select class="input select" name="desired_format">
+                <option>Первый взгляд</option>
+                <option>Слот на 1 стрим</option>
+                <option>Мини-серия</option>
+                <option>Полное прохождение</option>
+              </select>
+            </label>
+            <label>
+              <span>Ссылка</span>
+              <input class="input" name="reference_url" placeholder="https://store.steampowered.com/..." />
+            </label>
+          </div>
+          <label>
+            <span>Почему это зайдёт на канале</span>
+            <textarea class="input textarea" name="reason" required placeholder="Коротко объясни, почему игра хорошо смотрится именно на стриме"></textarea>
+          </label>
+          <label>
+            <span>Риски / нюансы</span>
+            <textarea class="input textarea small-area" name="notes" placeholder="18+, технические нюансы, кооп, нужна локализация и т.д."></textarea>
+          </label>
+          <button class="button primary wide" type="submit">Отправить заявку</button>
+          <p id="submit-message" class="form-message"></p>
+        </form>
+      </div>
+    </section>
+
+    <section class="section" id="rules">
+      <div class="container rules-grid">
+        <div>
+          <span class="eyebrow">ПРАВИЛА</span>
+          <h2>Что важно знать до отправки заявки</h2>
+        </div>
+        <div class="rules-cards">
+          <article class="panel">
+            <h3>Что гарантируется</h3>
+            <ul>
+              <li>Каждая заявка попадает на рассмотрение</li>
+              <li>После одобрения игра появляется в публичной очереди</li>
+              <li>Статусы и приоритет обновляются прозрачно</li>
+            </ul>
+          </article>
+          <article class="panel">
+            <h3>Что не гарантируется</h3>
+            <ul>
+              <li>Мгновенный запуск игры</li>
+              <li>Полное прохождение до конца</li>
+              <li>Точная дата стрима без отдельного назначения слота</li>
+            </ul>
+          </article>
+          <article class="panel">
+            <h3>Что может быть отклонено</h3>
+            <ul>
+              <li>Риск банов, страйков или сомнительный контент</li>
+              <li>Технически нестабильные проекты</li>
+              <li>Игры, не подходящие по вайбу канала</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="admin-modal" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Админка</h3>
+        <button class="icon-btn" id="close-admin">✕</button>
+      </div>
+
+      <div id="admin-auth-box" class="stack gap">
+        <p class="muted">Войди через Supabase Auth. Для GitHub Pages достаточно email magic link или обычного email/password.</p>
+        <div class="grid two">
+          <label>
+            <span>Email</span>
+            <input id="admin-email" class="input" type="email" placeholder="you@example.com" />
+          </label>
+          <label>
+            <span>Пароль</span>
+            <input id="admin-password" class="input" type="password" placeholder="••••••••" />
+          </label>
+        </div>
+        <div class="actions-row">
+          <button id="admin-signin" class="button primary">Войти</button>
+          <button id="admin-magic" class="button">Magic link</button>
+        </div>
+        <p id="auth-message" class="form-message"></p>
+      </div>
+
+      <div id="admin-panel" class="hidden">
+        <div class="admin-toolbar">
+          <div>
+            <strong id="admin-user"></strong>
+            <p class="muted">Управление заявками и очередью</p>
+          </div>
+          <div class="actions-row">
+            <button id="seed-demo" class="button ghost">Добавить демо-данные</button>
+            <button id="admin-signout" class="button">Выйти</button>
+          </div>
+        </div>
+        <div id="admin-list" class="admin-list"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
