@@ -122,14 +122,30 @@
 
     <section class="section alt" id="completed">
       <div class="container section-shell">
-        <div class="section-head">
+        <div class="section-head queue-head">
           <div>
             <span class="eyebrow">ПРОЙДЕННЫЕ ИГРЫ</span>
             <h2>Архив пройденных игр и мои оценки</h2>
-            <p class="section-text">Отдельный список уже завершённых игр. Здесь будут карточки с постером, датой и рейтингом от 1 до 10.</p>
+            <p class="section-text">Фильтруй игры по оценке, сортируй по дате или рейтингу и открывай полные карточки с постером.</p>
+          </div>
+          <div class="filters completed-filters">
+            <select id="completed-score-filter" class="input select">
+              <option value="all">Все оценки</option>
+              <option value="9">9–10</option>
+              <option value="7">7–8</option>
+              <option value="5">5–6</option>
+              <option value="1">1–4</option>
+            </select>
+            <select id="completed-sort-select" class="input select">
+              <option value="date_desc">Сначала новые</option>
+              <option value="date_asc">Сначала старые</option>
+              <option value="score_desc">По рейтингу ↓</option>
+              <option value="score_asc">По рейтингу ↑</option>
+              <option value="title">По названию</option>
+            </select>
           </div>
         </div>
-        <div id="completed-list" class="completed-list"></div>
+        <div id="completed-list" class="completed-list poster-grid"></div>
       </div>
     </section>
 

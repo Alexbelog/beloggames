@@ -17,6 +17,8 @@ const STATUS_META = {
 const els = {
   queueGrid: document.getElementById('queue-grid'),
   completedList: document.getElementById('completed-list'),
+  completedScoreFilter: document.getElementById('completed-score-filter'),
+  completedSortSelect: document.getElementById('completed-sort-select'),
   scheduledList: document.getElementById('scheduled-list'),
   spotlightCard: document.getElementById('spotlight-card'),
   submitForm: document.getElementById('submit-form'),
@@ -67,6 +69,10 @@ const state = {
     status: 'all',
     sort: 'priority'
   },
+  completedFilters: {
+    score: 'all',
+    sort: 'date_desc'
+  },
   hltbClient: null,
   completedPosterTimer: null
 };
@@ -95,6 +101,14 @@ function bindEvents() {
   els.sortSelect.addEventListener('change', (e) => {
     state.filters.sort = e.target.value;
     renderQueue();
+  });
+  els.completedScoreFilter.addEventListener('change', (e) => {
+    state.completedFilters.score = e.target.value;
+    renderCompleted();
+  });
+  els.completedSortSelect.addEventListener('change', (e) => {
+    state.completedFilters.sort = e.target.value;
+    renderCompleted();
   });
 
   els.submitForm.addEventListener('submit', submitRequest);
@@ -347,37 +361,84 @@ function renderQueue() {
   document.querySelectorAll('.open-request').forEach(btn => btn.addEventListener('click', () => openRequestModal(btn.dataset.id)));
 }
 
+function filteredCompletedGames() {
+  let items = [...state.completedGames];
+
+  switch (state.completedFilters.score) {
+    case '9':
+      items = items.filter(g => g.score >= 9);
+      break;
+    case '7':
+      items = items.filter(g => g.score >= 7 && g.score <= 8);
+      break;
+    case '5':
+      items = items.filter(g => g.score >= 5 && g.score <= 6);
+      break;
+    case '1':
+      items = items.filter(g => g.score >= 1 && g.score <= 4);
+      break;
+    default:
+      break;
+  }
+
+  switch (state.completedFilters.sort) {
+    case 'date_asc':
+      items.sort((a, b) => {
+        const aTime = a.completed_at ? new Date(a.completed_at).getTime() : Number.MAX_SAFE_INTEGER;
+        const bTime = b.completed_at ? new Date(b.completed_at).getTime() : Number.MAX_SAFE_INTEGER;
+        return aTime - bTime || a.title.localeCompare(b.title, 'ru');
+      });
+      break;
+    case 'score_desc':
+      items.sort((a, b) => b.score - a.score || new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at));
+      break;
+    case 'score_asc':
+      items.sort((a, b) => a.score - b.score || new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at));
+      break;
+    case 'title':
+      items.sort((a, b) => a.title.localeCompare(b.title, 'ru'));
+      break;
+    default:
+      items.sort((a, b) => {
+        const aTime = a.completed_at ? new Date(a.completed_at).getTime() : 0;
+        const bTime = b.completed_at ? new Date(b.completed_at).getTime() : 0;
+        return bTime - aTime || b.score - a.score;
+      });
+  }
+
+  return items;
+}
+
 function renderCompleted() {
-  const items = [...state.completedGames].sort((a, b) => {
-    const aTime = a.completed_at ? new Date(a.completed_at).getTime() : 0;
-    const bTime = b.completed_at ? new Date(b.completed_at).getTime() : 0;
-    return bTime - aTime || b.score - a.score;
-  });
+  const items = filteredCompletedGames();
 
   if (!items.length) {
-    els.completedList.innerHTML = '<div class="empty-state">Пока нет добавленных пройденных игр.</div>';
+    els.completedList.innerHTML = '<div class="empty-state">По этому фильтру пока нет игр.</div>';
     return;
   }
 
   els.completedList.innerHTML = items.map(game => `
-    <article class="completed-card" data-id="${game.id}">
-      <div class="completed-poster ${game.poster_url ? '' : 'poster-fallback'}">
-        ${game.poster_url ? `<img src="${escapeHtml(game.poster_url)}" alt="${escapeHtml(game.title)}" loading="lazy" onerror="this.closest('.completed-poster').classList.add('poster-fallback'); this.remove();">` : `<span>${escapeHtml(initialsFromTitle(game.title))}</span>`}
-      </div>
-      <div class="completed-main">
-        <div class="card-top">
-          <span class="pill">Пройдено</span>
-          <span class="pill">${game.completed_at ? formatDateShort(game.completed_at) : 'дата не указана'}</span>
+    <article class="completed-poster-card" data-id="${game.id}">
+      <button class="poster-card-hitbox open-completed" data-id="${game.id}" aria-label="Открыть ${escapeAttribute(game.title)}"></button>
+      <div class="completed-poster-frame ${game.poster_url ? '' : 'poster-fallback'}">
+        ${game.poster_url ? `<img src="${escapeHtml(game.poster_url)}" alt="${escapeHtml(game.title)}" loading="lazy" onerror="this.closest('.completed-poster-frame').classList.add('poster-fallback'); this.remove();">` : `<span>${escapeHtml(initialsFromTitle(game.title))}</span>`}
+        <div class="poster-overlay">
+          <div class="poster-topline">
+            <span class="pill">Пройдено</span>
+            <span class="pill">${game.completed_at ? formatDateShort(game.completed_at) : 'без даты'}</span>
+          </div>
+          <div class="poster-bottom">
+            <div class="stars-line compact-stars" aria-label="Оценка ${game.score} из 10">${renderStars(game.score)}</div>
+            <div class="poster-score">${game.score}/10</div>
+          </div>
         </div>
+      </div>
+      <div class="completed-card-copy">
         <h3>${escapeHtml(game.title)}</h3>
         <div class="pill-row">
           <span class="pill">${escapeHtml(game.genre)}</span>
         </div>
-        <p>${escapeHtml(truncate(game.review || 'Комментарий пока не добавлен.', 180))}</p>
-      </div>
-      <div class="completed-side">
-        <div class="stars-line" aria-label="Оценка ${game.score} из 10">${renderStars(game.score)}</div>
-        <div class="score-text">${game.score}/10</div>
+        <p>${escapeHtml(truncate(game.review || 'Комментарий пока не добавлен.', 120))}</p>
         <div class="detail-actions completed-actions">
           <button class="button ghost small open-completed" data-id="${game.id}">Подробнее</button>
           <a class="button small icon-button" href="${escapeHtml(game.hltb_url || hltbSearchUrl(game.title))}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span></a>
