@@ -353,6 +353,7 @@ function renderQueue() {
       <div class="detail-actions">
         <button class="button ghost small open-request" data-id="${game.id}">Подробнее</button>
         <a class="button small icon-button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span></a>
+        <a class="button small" href="https://donatex.gg/donate/Alexbelog" target="_blank" rel="noopener">Поддержать</a>
         ${game.reference_url ? `<a class="button small" href="${escapeHtml(game.reference_url)}" target="_blank" rel="noopener">Ссылка</a>` : ''}
       </div>
     </article>
@@ -512,6 +513,7 @@ function renderSpotlight() {
     <div class="detail-actions">
       <button class="button primary small" id="open-spotlight">Подробнее</button>
       <a class="button ghost small icon-button" href="${hltbSearchUrl(candidate.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span></a>
+      <a class="button ghost small" href="https://donatex.gg/donate/Alexbelog" target="_blank" rel="noopener">Поддержать</a>
       ${candidate.reference_url ? `<a class="button ghost small" href="${escapeHtml(candidate.reference_url)}" target="_blank" rel="noopener">Ссылка</a>` : ''}
     </div>
   `;
@@ -655,6 +657,7 @@ function openRequestModal(id) {
       </div>
       <div class="detail-actions">
         <a class="button icon-button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span>Открыть в HLTB</a>
+        <a class="button" href="https://donatex.gg/donate/Alexbelog" target="_blank" rel="noopener">Поддержать заявку</a>
         ${game.reference_url ? `<a class="button primary" href="${escapeHtml(game.reference_url)}" target="_blank" rel="noopener">Открыть ссылку</a>` : ''}
         <button class="button ghost" id="close-from-detail">Закрыть</button>
       </div>
