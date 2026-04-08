@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlexBelog — Game Request</title>
-  <meta name="description" content="Сайт заявок и очереди игр для стримов AlexBelog" />
-  <meta name="theme-color" content="#101726" />
+  <meta name="description" content="Минималистичный сайт заявок и очереди игр для стримов AlexBelog" />
+  <meta name="theme-color" content="#0e1015" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,27 +13,40 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-grid"></div>
+  <div class="site-noise" aria-hidden="true"></div>
 
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="#home" aria-label="AlexBelog Game Request">
-        <span class="brand-mark">AB</span>
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 3L3 8v10h6v3l3-3h4l5-5V3H5Z" fill="currentColor"/>
+            <path d="M10 8v4M15 8v4" stroke="#0e1015" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
         <span class="brand-text">
           <strong>AlexBelog</strong>
-          <small>Game Request</small>
+          <small>GAME REQUEST</small>
         </span>
       </a>
+
       <nav class="nav desktop-nav">
         <a href="#queue">Очередь</a>
         <a href="#spotlight">Слоты</a>
-        <a href="#submit">Предложить игру</a>
+        <a href="#submit">Заявка</a>
         <a href="#rules">Правила</a>
       </nav>
+
       <div class="header-actions">
-        <a class="button ghost small" href="https://www.twitch.tv/alexbelog" target="_blank" rel="noopener">Twitch</a>
+        <a class="button ghost small icon-button" href="https://www.twitch.tv/alexbelog" target="_blank" rel="noopener">
+          <span class="icon-twitch" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 3L3 8v10h6v3l3-3h4l5-5V3H5Zm14 9-3 3h-4l-2 2v-2H5V5h14v7Z"/>
+              <path d="M10 8h2v4h-2V8Zm5 0h2v4h-2V8Z"/>
+            </svg>
+          </span>
+          Twitch
+        </a>
         <button id="open-admin" class="button primary small">Админ</button>
       </div>
     </div>
@@ -42,28 +55,27 @@
   <main>
     <section class="hero" id="home">
       <div class="container hero-grid">
-        <div class="hero-copy">
+        <div class="hero-copy reveal-card">
           <span class="eyebrow">GAME REQUEST</span>
-          <h1>Заявки на игры для стримов — без хаоса, с понятной очередью.</h1>
+          <h1>Чистая очередь заявок на игры для стримов.</h1>
           <p class="hero-text">
-            Предлагай игру, следи за статусом, поддерживай приоритет и смотри, что уже назначено на эфир.
-            Сайт сделан под формат канала: сначала модерация, потом прозрачная очередь и слоты.
+            Предложи игру, посмотри статус, а для длительности просто начни вводить название — сайт сам попробует подтянуть примерное время из HLTB.
           </p>
           <div class="hero-actions">
-            <a class="button primary" href="#submit">Предложить игру</a>
+            <a class="button primary" href="#submit">Оставить заявку</a>
             <a class="button" href="#queue">Открыть очередь</a>
           </div>
           <div class="stats-grid">
-            <article class="stat-card"><strong id="stat-total">0</strong><span>всего заявок</span></article>
+            <article class="stat-card"><strong id="stat-total">0</strong><span>заявок</span></article>
             <article class="stat-card"><strong id="stat-approved">0</strong><span>одобрено</span></article>
             <article class="stat-card"><strong id="stat-scheduled">0</strong><span>назначено</span></article>
             <article class="stat-card"><strong id="stat-done">0</strong><span>завершено</span></article>
           </div>
         </div>
 
-        <aside class="spotlight panel-glow">
+        <aside class="spotlight panel reveal-card">
           <div class="spotlight-head">
-            <span class="eyebrow small">ГЛАВНЫЙ СЛОТ</span>
+            <span class="eyebrow small">FEATURED SLOT</span>
             <span class="pill accent">live queue</span>
           </div>
           <div id="spotlight-card" class="spotlight-card"></div>
@@ -75,8 +87,8 @@
       <div class="container section-shell">
         <div class="section-head">
           <div>
-            <span class="eyebrow">БЛИЖАЙШИЕ ЗАПУСКИ</span>
-            <h2>Что уже назначено или почти дошло до эфира</h2>
+            <span class="eyebrow">БЛИЖАЙШИЕ СЛОТЫ</span>
+            <h2>Что уже ближе всего к эфиру</h2>
           </div>
         </div>
         <div id="scheduled-list" class="scheduled-list"></div>
@@ -88,10 +100,10 @@
         <div class="section-head queue-head">
           <div>
             <span class="eyebrow">ПУБЛИЧНАЯ ОЧЕРЕДЬ</span>
-            <h2>Одобренные заявки и игры в работе</h2>
+            <h2>Игры в работе и одобренные заявки</h2>
           </div>
           <div class="filters">
-            <input id="search-input" class="input" type="search" placeholder="Поиск по названию, жанру, нику" />
+            <input id="search-input" class="input" type="search" placeholder="Поиск по игре, жанру или нику" />
             <select id="status-filter" class="input select">
               <option value="all">Все статусы</option>
             </select>
@@ -111,10 +123,9 @@
       <div class="container form-layout">
         <div class="form-copy">
           <span class="eyebrow">НОВАЯ ЗАЯВКА</span>
-          <h2>Предложить игру на стрим</h2>
+          <h2>Предложить игру</h2>
           <p class="section-text">
-            Заявка попадёт на модерацию, после чего появится в очереди со статусом. Публичная очередь скрывает отклонённые заявки,
-            поэтому для зрителя всё выглядит чисто и понятно.
+            Форма сделана максимально короткой. Введи название, а время сайт попробует заполнить сам через HLTB. Если автопоиск не сработает, поле всегда можно поправить вручную.
           </p>
           <div class="info-cards">
             <article class="mini-card">
@@ -122,12 +133,12 @@
               <p>Первый взгляд, слот на 1 стрим, мини-серия, полное прохождение.</p>
             </article>
             <article class="mini-card">
-              <strong>Что приложить</strong>
-              <p>Ссылку на игру, причины, длительность и важные риски. Длительность удобно проверить прямо из поля названия через HLTB.</p>
+              <strong>HLTB</strong>
+              <p>Мини-значок рядом с названием открывает точный поиск по HowLongToBeat.</p>
             </article>
             <article class="mini-card">
-              <strong>Что влияет на очередь</strong>
-              <p>Модерация, приоритет, близость формату канала и назначенные слоты.</p>
+              <strong>Важно</strong>
+              <p>Автодлительность — это ориентир. Финальное решение по очереди остаётся за стримером.</p>
             </article>
           </div>
         </div>
@@ -136,21 +147,29 @@
           <div class="grid two">
             <label>
               <span>Название игры</span>
-              <input id="game-title-input" class="input" name="title" required autocomplete="off" placeholder="Например: Lies of P" />
+              <div class="title-input-wrap">
+                <input id="game-title-input" class="input" name="title" required autocomplete="off" placeholder="Например: Lies of P" />
+                <a id="hltb-icon-link" class="hltb-icon-link hidden" href="https://howlongtobeat.com" target="_blank" rel="noopener" aria-label="Открыть поиск в HowLongToBeat">
+                  <span class="hltb-mini">HLTB</span>
+                </a>
+              </div>
               <div id="hltb-helper" class="helper-card hidden" aria-live="polite">
                 <div class="helper-copy">
-                  <strong>Проверить длительность</strong>
-                  <p>Как только впишешь название, можно в один клик открыть поиск по HowLongToBeat и быстро сверить часы.</p>
+                  <strong>Время по HowLongToBeat</strong>
+                  <p id="hltb-status">Начни вводить название — и сайт попробует найти примерную длительность автоматически.</p>
                 </div>
                 <div class="helper-actions">
-                  <a id="hltb-search-link" class="button small" href="https://www.google.com/search?q=site%3Ahowlongtobeat.com" target="_blank" rel="noopener">Найти в HLTB</a>
-                  <button id="use-hltb-hours" class="button ghost small" type="button">Перейти к длительности</button>
+                  <a id="hltb-search-link" class="button ghost small icon-button" href="https://www.google.com/search?q=site%3Ahowlongtobeat.com" target="_blank" rel="noopener">
+                    <span class="hltb-mini">HLTB</span>
+                    Открыть поиск
+                  </a>
+                  <button id="use-hltb-hours" class="button small" type="button">К полю времени</button>
                 </div>
               </div>
             </label>
             <label>
               <span>Твой ник</span>
-              <input class="input" name="viewer_name" required />
+              <input class="input" name="viewer_name" required placeholder="alex_viewer" />
             </label>
           </div>
           <div class="grid two">
@@ -160,8 +179,8 @@
             </label>
             <label>
               <span>Примерная длительность, часов</span>
-              <input id="estimated-hours-input" class="input" name="estimated_hours" type="number" min="1" max="500" placeholder="12" />
-              <small class="field-tip">Необязательно точно: достаточно примерной цифры с HowLongToBeat или по своему опыту.</small>
+              <input id="estimated-hours-input" class="input" name="estimated_hours" type="number" min="1" max="500" placeholder="Заполнится автоматически" />
+              <small id="estimated-hours-meta" class="field-tip">Можно оставить автозначение или поменять вручную.</small>
             </label>
           </div>
           <div class="grid two">
@@ -180,12 +199,12 @@
             </label>
           </div>
           <label>
-            <span>Почему это зайдёт на канале</span>
-            <textarea class="input textarea" name="reason" required placeholder="Коротко: чем игра хороша для стрима и почему она хорошо подходит для стрима на канале"></textarea>
+            <span>Почему эта игра подойдёт для стрима</span>
+            <textarea class="input textarea" name="reason" required placeholder="Пара предложений: почему это интересно смотреть именно на стриме"></textarea>
           </label>
           <label>
-            <span>Риски и нюансы</span>
-            <textarea class="input textarea compact" name="notes" placeholder="18+, спорный контент, кооп, моды, язык, тех. проблемы и т.д."></textarea>
+            <span>Нюансы</span>
+            <textarea class="input textarea compact" name="notes" placeholder="18+, язык, кооп, моды, технические риски и т.д."></textarea>
           </label>
           <button class="button primary wide" type="submit">Отправить заявку</button>
           <p id="submit-message" class="form-message"></p>
@@ -198,16 +217,16 @@
         <div class="section-head">
           <div>
             <span class="eyebrow">ПРАВИЛА</span>
-            <h2>Что важно знать перед заявкой</h2>
+            <h2>Коротко и по делу</h2>
           </div>
         </div>
         <div class="rules-grid">
           <article class="panel rule-card">
             <h3>Что гарантируется</h3>
             <ul>
-              <li>Заявка попадает на рассмотрение.</li>
-              <li>После одобрения игра появляется в публичной очереди.</li>
-              <li>Статусы и слоты можно посмотреть на сайте.</li>
+              <li>Заявка попадёт на рассмотрение.</li>
+              <li>После одобрения игра появится в публичной очереди.</li>
+              <li>Статус и слот будут видны на сайте.</li>
             </ul>
           </article>
           <article class="panel rule-card">
@@ -215,7 +234,7 @@
             <ul>
               <li>Мгновенный запуск.</li>
               <li>Полное прохождение любой игры.</li>
-              <li>Фиксированная дата без назначения слота.</li>
+              <li>Точная дата без назначенного слота.</li>
             </ul>
           </article>
           <article class="panel rule-card">
@@ -234,12 +253,12 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>
-        <strong>AlexBelog — Game Request</strong>
-        <p>Статический сайт для GitHub Pages + Supabase.</p>
+        <strong>AlexBelog — GAME REQUEST</strong>
+        <p>GitHub Pages + Supabase + HLTB autofill.</p>
       </div>
       <div class="footer-links">
         <a href="https://www.twitch.tv/alexbelog" target="_blank" rel="noopener">Twitch</a>
-        <a href="#submit">Предложить игру</a>
+        <a href="#submit">Заявка</a>
         <a href="#queue">Очередь</a>
       </div>
     </div>
@@ -297,6 +316,6 @@
     </div>
   </dialog>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -21,8 +21,11 @@ const els = {
   submitForm: document.getElementById('submit-form'),
   titleInput: document.getElementById('game-title-input'),
   estimatedHoursInput: document.getElementById('estimated-hours-input'),
+  estimatedHoursMeta: document.getElementById('estimated-hours-meta'),
   hltbHelper: document.getElementById('hltb-helper'),
   hltbSearchLink: document.getElementById('hltb-search-link'),
+  hltbIconLink: document.getElementById('hltb-icon-link'),
+  hltbStatus: document.getElementById('hltb-status'),
   useHltbHours: document.getElementById('use-hltb-hours'),
   submitMessage: document.getElementById('submit-message'),
   searchInput: document.getElementById('search-input'),
@@ -58,18 +61,49 @@ const state = {
     query: '',
     status: 'all',
     sort: 'priority'
+  },
+  hltb: {
+    client: null,
+    timer: null,
+    activeToken: 0,
+    lastAutoValue: null,
+    manualHours: false
   }
 };
 
-init();
+await init();
 
 async function init() {
   populateStatusFilter();
   bindEvents();
+  await setupHltb();
   await restoreSession();
   await loadGames();
   renderAll();
   if (supabase) subscribeRealtime();
+}
+
+async function setupHltb() {
+  const candidates = [
+    'https://esm.sh/howlongtobeat-core',
+    'https://esm.sh/howlongtobeat@1.8.0'
+  ];
+
+  for (const url of candidates) {
+    try {
+      const mod = await import(url);
+      const Client = mod.HowLongToBeat || mod.default?.HowLongToBeat || mod.default;
+      if (Client) {
+        state.hltb.client = new Client();
+        els.hltbStatus.textContent = 'Начни вводить название — длительность попробуем подтянуть автоматически.';
+        return;
+      }
+    } catch (error) {
+      console.warn('HLTB import failed:', url, error);
+    }
+  }
+
+  els.hltbStatus.textContent = 'Автопоиск сейчас недоступен. Можно открыть HLTB вручную через значок справа.';
 }
 
 async function restoreSession() {
@@ -147,7 +181,8 @@ function bindEvents() {
     renderQueue();
   });
   els.submitForm.addEventListener('submit', submitRequest);
-  els.titleInput.addEventListener('input', updateHltbHelper);
+  els.titleInput.addEventListener('input', onTitleInput);
+  els.estimatedHoursInput.addEventListener('input', onEstimatedHoursInput);
   els.useHltbHours.addEventListener('click', focusEstimatedHours);
 
   els.openAdmin.addEventListener('click', () => els.adminModal.showModal());
@@ -162,7 +197,7 @@ function bindEvents() {
   });
   els.seedDemo.addEventListener('click', () => seedLocalGames(true));
 
-  updateHltbHelper();
+  updateHltbLinks('');
 
   els.gameModal.addEventListener('click', (e) => {
     const rect = els.gameModal.getBoundingClientRect();
@@ -171,18 +206,133 @@ function bindEvents() {
   });
 }
 
-function updateHltbHelper() {
-  const title = els.titleInput?.value?.trim() || '';
-  const hasQuery = title.length >= 2;
-  els.hltbHelper.classList.toggle('hidden', !hasQuery);
-  const encoded = encodeURIComponent(`site:howlongtobeat.com ${title}`);
-  els.hltbSearchLink.href = `https://www.google.com/search?q=${encoded}`;
-  els.hltbSearchLink.textContent = hasQuery ? `Найти "${title}" в HLTB` : 'Найти в HLTB';
+function onTitleInput() {
+  const title = els.titleInput.value.trim();
+  updateHltbLinks(title);
+  els.hltbHelper.classList.toggle('hidden', title.length < 2);
+  els.hltbIconLink.classList.toggle('hidden', title.length < 2);
+
+  clearTimeout(state.hltb.timer);
+  if (title.length < 2) {
+    setHltbIdle();
+    return;
+  }
+
+  els.hltbStatus.textContent = state.hltb.client
+    ? 'Ищу примерную длительность…'
+    : 'Автопоиск сейчас недоступен. Можно открыть HLTB вручную.';
+
+  if (!state.hltb.client || title.length < 3) return;
+
+  const token = ++state.hltb.activeToken;
+  state.hltb.timer = setTimeout(() => fetchAndApplyHltb(title, token), 650);
+}
+
+function onEstimatedHoursInput() {
+  const value = els.estimatedHoursInput.value.trim();
+  state.hltb.manualHours = value !== '' && String(state.hltb.lastAutoValue ?? '') !== value;
+}
+
+function updateHltbLinks(title) {
+  const target = title || '';
+  const searchUrl = hltbSearchUrl(target);
+  els.hltbSearchLink.href = searchUrl;
+  els.hltbIconLink.href = searchUrl;
+}
+
+function setHltbIdle() {
+  els.hltbHelper.classList.add('hidden');
+  els.hltbIconLink.classList.add('hidden');
+  els.hltbStatus.textContent = 'Начни вводить название — и сайт попробует найти примерную длительность автоматически.';
+  els.estimatedHoursMeta.textContent = 'Можно оставить автозначение или поменять вручную.';
+}
+
+async function fetchAndApplyHltb(title, token) {
+  try {
+    const result = await findBestHltbMatch(title);
+    if (token !== state.hltb.activeToken) return;
+
+    if (!result) {
+      els.hltbStatus.textContent = `Для «${title}» точное совпадение не найдено. Можно открыть HLTB вручную.`;
+      els.estimatedHoursMeta.textContent = 'Если автопоиск не сработал, поле можно заполнить вручную.';
+      return;
+    }
+
+    const shouldApply = !els.estimatedHoursInput.value.trim() || !state.hltb.manualHours || String(state.hltb.lastAutoValue ?? '') === els.estimatedHoursInput.value.trim();
+    if (shouldApply && result.hours) {
+      els.estimatedHoursInput.value = String(result.hours);
+      state.hltb.lastAutoValue = result.hours;
+      state.hltb.manualHours = false;
+    }
+
+    const durationLabel = result.label ? `${result.label}: ${result.hours} ч` : `${result.hours} ч`;
+    els.hltbStatus.textContent = `Найдено: ${result.name}. ${durationLabel}.`;
+    els.estimatedHoursMeta.textContent = `Автозаполнение из HLTB: ${durationLabel}. Поле можно изменить вручную.`;
+  } catch (error) {
+    console.warn('HLTB search failed', error);
+    if (token !== state.hltb.activeToken) return;
+    els.hltbStatus.textContent = 'Не удалось получить данные автоматически. Открыть точный поиск всё ещё можно через HLTB.';
+    els.estimatedHoursMeta.textContent = 'Если HLTB временно недоступен, поле заполняется вручную.';
+  }
+}
+
+async function findBestHltbMatch(title) {
+  const client = state.hltb.client;
+  if (!client) return null;
+
+  const withTimeout = (promise, ms = 8000) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('HLTB timeout')), ms))
+  ]);
+
+  const results = await withTimeout(client.search(title), 8000);
+  if (!Array.isArray(results) || !results.length) return null;
+
+  const normalizedTitle = normalizeTitle(title);
+  const scored = results.map((item) => {
+    const name = item.gameName || item.name || '';
+    const normalizedName = normalizeTitle(name);
+    let score = 0;
+    if (normalizedName === normalizedTitle) score += 100;
+    if (normalizedName.startsWith(normalizedTitle) || normalizedTitle.startsWith(normalizedName)) score += 40;
+    if (normalizedName.includes(normalizedTitle) || normalizedTitle.includes(normalizedName)) score += 25;
+    score -= Math.abs(normalizedName.length - normalizedTitle.length);
+    return { item, score };
+  }).sort((a, b) => b.score - a.score);
+
+  const best = scored[0]?.item;
+  if (!best) return null;
+
+  const mainExtra = numberOrNull(best.mainExtra ?? best.gameplayMainExtra);
+  const mainStory = numberOrNull(best.mainStory ?? best.gameplayMain);
+  const completionist = numberOrNull(best.completionist ?? best.gameplayCompletionist);
+  const hours = mainExtra || mainStory || completionist;
+  if (!hours) return null;
+
+  const label = mainExtra ? 'Main + Extra' : mainStory ? 'Main Story' : 'Completionist';
+  return {
+    name: best.gameName || title,
+    hours: Math.round(hours),
+    label
+  };
+}
+
+function numberOrNull(value) {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : null;
+}
+
+function normalizeTitle(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[:'".,!\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function focusEstimatedHours() {
-  els.estimatedHoursInput?.focus();
-  els.estimatedHoursInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  els.estimatedHoursInput.focus();
+  els.estimatedHoursInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function normalizeGame(game) {
@@ -245,7 +395,7 @@ function renderAll() {
 function renderQueue() {
   const items = filteredGames().filter(g => STATUS_META[g.status]?.public);
   if (!items.length) {
-    els.queueGrid.innerHTML = '<div class="empty-state">Пока здесь пусто. Добавь демо-данные в админке или отправь первую заявку.</div>';
+    els.queueGrid.innerHTML = '<div class="empty-state">Пока здесь пусто. Отправь первую заявку или добавь демо-данные в админке.</div>';
     return;
   }
 
@@ -257,7 +407,7 @@ function renderQueue() {
       </div>
       <div>
         <h3>${escapeHtml(game.title)}</h3>
-        <p>${escapeHtml(truncate(game.reason, 160))}</p>
+        <p>${escapeHtml(truncate(game.reason, 140))}</p>
       </div>
       <div class="pill-row">
         <span class="pill">${escapeHtml(game.genre)}</span>
@@ -270,7 +420,7 @@ function renderQueue() {
       ${game.scheduled_at ? `<div class="meta-row"><span>Слот</span><span>${formatDate(game.scheduled_at)}</span></div>` : ''}
       <div class="detail-actions">
         <button class="button ghost small open-game" data-id="${game.id}">Подробнее</button>
-        <a class="button small" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener">HLTB</a>
+        <a class="button small icon-button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span></a>
         ${game.reference_url ? `<a class="button small" href="${escapeHtml(game.reference_url)}" target="_blank" rel="noopener">Ссылка</a>` : ''}
       </div>
     </article>
@@ -290,7 +440,7 @@ function renderScheduled() {
     .slice(0, 6);
 
   if (!items.length) {
-    els.scheduledList.innerHTML = '<div class="empty-state">Пока нет слотов. Назначь их из админки или добавь демо-данные.</div>';
+    els.scheduledList.innerHTML = '<div class="empty-state">Пока нет назначенных слотов.</div>';
     return;
   }
 
@@ -301,9 +451,12 @@ function renderScheduled() {
         <span class="pill">${game.priority_points} очков</span>
       </div>
       <h3>${escapeHtml(game.title)}</h3>
-      <p class="muted">${escapeHtml(game.desired_format)} · ${escapeHtml(game.genre)}</p>
+      <p>${escapeHtml(game.desired_format)} · ${escapeHtml(game.genre)}</p>
       <p>${game.scheduled_at ? formatDate(game.scheduled_at) : 'Дата ещё не назначена'}</p>
-      <button class="button ghost small open-game" data-id="${game.id}">Открыть карточку</button>
+      <div class="detail-actions">
+        <button class="button ghost small open-game" data-id="${game.id}">Открыть</button>
+        <a class="button small icon-button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span></a>
+      </div>
     </article>
   `).join('');
 
@@ -313,14 +466,10 @@ function renderScheduled() {
 function renderSpotlight() {
   const candidate = [...state.games]
     .filter(g => ['live', 'scheduled', 'collecting', 'approved'].includes(g.status))
-    .sort((a, b) => {
-      const scoreA = spotlightScore(a);
-      const scoreB = spotlightScore(b);
-      return scoreB - scoreA;
-    })[0];
+    .sort((a, b) => spotlightScore(b) - spotlightScore(a))[0];
 
   if (!candidate) {
-    els.spotlightCard.innerHTML = '<div class="spotlight-empty">Пока нет кандидатов для главного слота. Добавь заявки или демо-данные.</div>';
+    els.spotlightCard.innerHTML = '<div class="spotlight-empty">Пока нет кандидатов для главного слота.</div>';
     return;
   }
 
@@ -331,18 +480,18 @@ function renderSpotlight() {
     </div>
     <div>
       <h2 class="spotlight-title">${escapeHtml(candidate.title)}</h2>
-      <p class="hero-text">${escapeHtml(truncate(candidate.reason, 220))}</p>
+      <p class="hero-text">${escapeHtml(truncate(candidate.reason, 200))}</p>
     </div>
-    <div class="spotlight-meta">
+    <div class="pill-row">
       <span class="pill">${escapeHtml(candidate.genre)}</span>
       <span class="pill">${escapeHtml(candidate.desired_format)}</span>
-      <span class="pill">От ${escapeHtml(candidate.viewer_name)}</span>
+      <span class="pill">${candidate.estimated_hours ? `${candidate.estimated_hours} ч` : 'время не указано'}</span>
     </div>
     ${candidate.scheduled_at ? `<p><strong>Слот:</strong> ${formatDate(candidate.scheduled_at)}</p>` : '<p><strong>Слот:</strong> ещё не назначен</p>'}
     <div class="detail-actions">
       <button class="button primary small" id="open-spotlight">Подробнее</button>
-      <a class="button ghost small" href="${hltbSearchUrl(candidate.title)}" target="_blank" rel="noopener">HowLongToBeat</a>
-      ${candidate.reference_url ? `<a class="button ghost small" href="${escapeHtml(candidate.reference_url)}" target="_blank" rel="noopener">Открыть ссылку</a>` : ''}
+      <a class="button ghost small icon-button" href="${hltbSearchUrl(candidate.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span></a>
+      ${candidate.reference_url ? `<a class="button ghost small" href="${escapeHtml(candidate.reference_url)}" target="_blank" rel="noopener">Ссылка</a>` : ''}
     </div>
   `;
 
@@ -377,7 +526,7 @@ function openGameModal(id) {
       <div class="detail-columns">
         <div>
           <h2 class="detail-title">${escapeHtml(game.title)}</h2>
-          <p class="detail-text">${escapeHtml(game.reason || 'Описание пока не заполнено.')}</p>
+          <p class="hero-text">${escapeHtml(game.reason || 'Описание пока не заполнено.')}</p>
           <div class="detail-grid">
             <span class="pill">Жанр: ${escapeHtml(game.genre)}</span>
             <span class="pill">Формат: ${escapeHtml(game.desired_format)}</span>
@@ -386,7 +535,7 @@ function openGameModal(id) {
           </div>
         </div>
         <aside class="panel">
-          <strong>Детали заявки</strong>
+          <strong>Детали</strong>
           <div class="stack gap" style="margin-top:12px;">
             <div><span class="muted">Создано</span><br>${formatDate(game.created_at)}</div>
             <div><span class="muted">Слот</span><br>${game.scheduled_at ? formatDate(game.scheduled_at) : 'ещё не назначен'}</div>
@@ -395,8 +544,8 @@ function openGameModal(id) {
         </aside>
       </div>
       <div class="detail-actions">
-        <a class="button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener">Искать в HowLongToBeat</a>
-        ${game.reference_url ? `<a class="button primary" href="${escapeHtml(game.reference_url)}" target="_blank" rel="noopener">Открыть ссылку на игру</a>` : ''}
+        <a class="button icon-button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span>Открыть в HLTB</a>
+        ${game.reference_url ? `<a class="button primary" href="${escapeHtml(game.reference_url)}" target="_blank" rel="noopener">Открыть ссылку</a>` : ''}
         <button class="button ghost" id="close-from-detail">Закрыть</button>
       </div>
     </div>
@@ -472,7 +621,10 @@ async function submitRequest(event) {
   }
 
   els.submitForm.reset();
-  updateHltbHelper();
+  state.hltb.manualHours = false;
+  state.hltb.lastAutoValue = null;
+  updateHltbLinks('');
+  setHltbIdle();
   els.submitMessage.textContent = 'Заявка отправлена. После модерации она появится в очереди.';
   renderAll();
 }
@@ -557,8 +709,8 @@ function seedLocalGames(showMessage = true) {
       estimated_hours: 14,
       desired_format: 'Мини-серия',
       reference_url: 'https://store.steampowered.com/',
-      reason: 'Подходит по вайбу канала: мрачная атмосфера, сложные боссы и хорошие моменты для клипов.',
-      notes: 'Есть кровь и жестокость, но без критичных рисков для стрима.',
+      reason: 'Подходит по атмосфере и хорошо смотрится как серия на несколько стримов.',
+      notes: 'Есть жестокость, но без критичных рисков для эфира.',
       priority_points: 320,
       status: 'scheduled',
       scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
@@ -572,8 +724,8 @@ function seedLocalGames(showMessage = true) {
       estimated_hours: 8,
       desired_format: 'Первый взгляд',
       reference_url: '',
-      reason: 'Очень мемный и жёсткий проект, который может зайти как отдельный спец-стрим, но требует аккуратной модерации.',
-      notes: 'Нужно проверить допустимость контента перед эфиром.',
+      reason: 'Нишевая и запоминающаяся игра, но требует аккуратной проверки контента.',
+      notes: 'Проверить допустимость для стрима заранее.',
       priority_points: 250,
       status: 'collecting',
       scheduled_at: null,
@@ -582,13 +734,13 @@ function seedLocalGames(showMessage = true) {
     {
       id: crypto.randomUUID(),
       title: 'Lies of P: DLC',
-      viewer_name: 'bearlair_sub',
+      viewer_name: 'viewer_sub',
       genre: 'soulslike',
       estimated_hours: 10,
       desired_format: 'Полное прохождение',
       reference_url: '',
-      reason: 'Максимально попадает в основной игровой профиль канала и почти наверняка зайдёт постоянной аудитории.',
-      notes: 'Можно ставить в большой слот или мини-марафон.',
+      reason: 'Сильное попадание в основной профиль канала и понятный запрос от аудитории.',
+      notes: 'Подходит под крупный слот.',
       priority_points: 470,
       status: 'approved',
       scheduled_at: null,
@@ -602,8 +754,8 @@ function seedLocalGames(showMessage = true) {
       estimated_hours: 20,
       desired_format: 'Слот на 1 стрим',
       reference_url: '',
-      reason: 'Сильный формат под челлендж и клипы, особенно если заранее упаковать правила и цель забега.',
-      notes: 'Проверить стабильность модов до стрима.',
+      reason: 'Хороший челлендж-формат с высоким шансом на клипы и активный чат.',
+      notes: 'Проверить стабильность модов.',
       priority_points: 610,
       status: 'live',
       scheduled_at: new Date().toISOString(),
@@ -617,7 +769,7 @@ function seedLocalGames(showMessage = true) {
       estimated_hours: 18,
       desired_format: 'Мини-серия',
       reference_url: '',
-      reason: 'Подойдёт как формат на несколько вечеров: жёстко, напряжённо и с высоким шансом на драму в чате.',
+      reason: 'Подходит для напряжённых сессий на несколько вечеров.',
       notes: '',
       priority_points: 185,
       status: 'done',
@@ -664,5 +816,6 @@ function escapeHtml(value) {
 }
 
 function truncate(text, max) {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  const safe = String(text || '');
+  return safe.length > max ? `${safe.slice(0, max - 1)}…` : safe;
 }
