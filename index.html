@@ -59,7 +59,7 @@
           <span class="eyebrow">GAME REQUEST</span>
           <h1>Очередь заявок на игры для стримов.</h1>
           <p class="hero-text">
-            Предложи игру, посмотри статус, а для длительности просто начни вводить название — сайт сам попробует подтянуть примерное время из HLTB.
+            Предложи игру, посмотри статус заявки и при необходимости быстро открой HowLongToBeat прямо из формы.
           </p>
           <div class="hero-actions">
             <a class="button primary" href="#submit">Оставить заявку</a>
@@ -149,22 +149,9 @@
               <span>Название игры</span>
               <div class="title-input-wrap">
                 <input id="game-title-input" class="input" name="title" required autocomplete="off" placeholder="Например: Lies of P" />
-                <a id="hltb-icon-link" class="hltb-icon-link hidden" href="https://howlongtobeat.com" target="_blank" rel="noopener" aria-label="Открыть HLTB в HowLongToBeat">
+                <a id="hltb-icon-link" class="hltb-icon-link hidden" href="https://howlongtobeat.com/" target="_blank" rel="noopener" aria-label="Открыть HLTB в HowLongToBeat">
                   <span class="hltb-mini">HLTB</span>
                 </a>
-              </div>
-              <div id="hltb-helper" class="helper-card hidden" aria-live="polite">
-                <div class="helper-copy">
-                  <strong>Время по HowLongToBeat</strong>
-                  <p id="hltb-status">Начни вводить название — и сайт попробует заполнить примерную длительность автоматически.</p>
-                </div>
-                <div class="helper-actions">
-                  <a id="hltb-search-link" class="button ghost small icon-button" href="https://www.google.com/search?q=site%3Ahowlongtobeat.com" target="_blank" rel="noopener">
-                    <span class="hltb-mini">HLTB</span>
-                    Открыть HLTB
-                  </a>
-                  <button id="use-hltb-hours" class="button small" type="button">К полю времени</button>
-                </div>
               </div>
             </label>
             <label>
@@ -179,8 +166,8 @@
             </label>
             <label>
               <span>Примерная длительность, часов</span>
-              <input id="estimated-hours-input" class="input" name="estimated_hours" type="number" min="1" max="500" placeholder="Заполнится автоматически" />
-              <small id="estimated-hours-meta" class="field-tip">Можно оставить автозначение или поменять вручную.</small>
+              <input id="estimated-hours-input" class="input" name="estimated_hours" type="number" min="1" max="500" placeholder="Например: 25" />
+              
             </label>
           </div>
           <div class="grid two">

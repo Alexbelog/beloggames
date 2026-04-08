@@ -159,7 +159,7 @@ label > span { color: var(--text); font-size: 0.92rem; }
 }
 .textarea { min-height: 128px; resize: vertical; }
 .textarea.compact { min-height: 92px; }
-.field-tip, .form-message { color: var(--muted); font-size: 0.9rem; }
+.form-message { color: var(--muted); font-size: 0.9rem; }
 .form-message:not(:empty) { margin-top: 10px; }
 .select { appearance: none; }
 .button {
@@ -215,21 +215,6 @@ label > span { color: var(--text); font-size: 0.92rem; }
   background: rgba(169,112,255,0.14);
   color: #dfd2ff;
 }
-.helper-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-top: 10px;
-  padding: 14px;
-  border: 1px solid rgba(169,112,255,0.2);
-  border-radius: 18px;
-  background: rgba(169,112,255,0.06);
-}
-.helper-copy strong { display: block; margin-bottom: 4px; }
-.helper-copy p { margin: 0; color: var(--muted); }
-.helper-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
 .panel, .queue-card, .scheduled-card, .rule-card { padding: 22px; }
 .queue-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .queue-card, .scheduled-card { display: grid; gap: 14px; }
@@ -324,6 +309,5 @@ label > span { color: var(--text); font-size: 0.92rem; }
 .title-input-wrap { display:flex; align-items:center; gap:10px; }
 .title-input-wrap .input { flex:1; }
 .hltb-icon-link { flex:0 0 auto; }
-.helper-card { align-items:center; }
 .footer-inner p:empty { display:none; }
 @media (max-width: 1180px) { .form-layout-wide { grid-template-columns: 1fr; } }

@@ -21,12 +21,7 @@ const els = {
   submitForm: document.getElementById('submit-form'),
   titleInput: document.getElementById('game-title-input'),
   estimatedHoursInput: document.getElementById('estimated-hours-input'),
-  estimatedHoursMeta: document.getElementById('estimated-hours-meta'),
-  hltbHelper: document.getElementById('hltb-helper'),
-  hltbSearchLink: document.getElementById('hltb-search-link'),
   hltbIconLink: document.getElementById('hltb-icon-link'),
-  hltbStatus: document.getElementById('hltb-status'),
-  useHltbHours: document.getElementById('use-hltb-hours'),
   submitMessage: document.getElementById('submit-message'),
   searchInput: document.getElementById('search-input'),
   statusFilter: document.getElementById('status-filter'),
@@ -62,13 +57,7 @@ const state = {
     status: 'all',
     sort: 'priority'
   },
-  hltb: {
-    client: null,
-    timer: null,
-    activeToken: 0,
-    lastAutoValue: null,
-    manualHours: false
-  }
+  hltb: {}
 };
 
 await init();
@@ -76,34 +65,10 @@ await init();
 async function init() {
   populateStatusFilter();
   bindEvents();
-  await setupHltb();
   await restoreSession();
   await loadGames();
   renderAll();
   if (supabase) subscribeRealtime();
-}
-
-async function setupHltb() {
-  const candidates = [
-    'https://esm.sh/howlongtobeat-core',
-    'https://esm.sh/howlongtobeat@1.8.0'
-  ];
-
-  for (const url of candidates) {
-    try {
-      const mod = await import(url);
-      const Client = mod.HowLongToBeat || mod.default?.HowLongToBeat || mod.default;
-      if (Client) {
-        state.hltb.client = new Client();
-        els.hltbStatus.textContent = 'Начни вводить название — длительность попробуем подтянуть автоматически.';
-        return;
-      }
-    } catch (error) {
-      console.warn('HLTB import failed:', url, error);
-    }
-  }
-
-  els.hltbStatus.textContent = 'Автопоиск сейчас недоступен. Можно открыть HLTB вручную через значок справа.';
 }
 
 async function restoreSession() {
@@ -182,8 +147,6 @@ function bindEvents() {
   });
   els.submitForm.addEventListener('submit', submitRequest);
   els.titleInput.addEventListener('input', onTitleInput);
-  els.estimatedHoursInput.addEventListener('input', onEstimatedHoursInput);
-  els.useHltbHours.addEventListener('click', focusEstimatedHours);
 
   els.openAdmin.addEventListener('click', () => els.adminModal.showModal());
   els.closeAdmin.addEventListener('click', () => els.adminModal.close());
@@ -197,7 +160,7 @@ function bindEvents() {
   });
   els.seedDemo.addEventListener('click', () => seedLocalGames(true));
 
-  updateHltbLinks('');
+  updateHltbLink('');
 
   els.gameModal.addEventListener('click', (e) => {
     const rect = els.gameModal.getBoundingClientRect();
@@ -207,131 +170,13 @@ function bindEvents() {
 }
 
 function onTitleInput() {
-  const title = els.titleInput.value.trim();
-  updateHltbLinks(title);
-  els.hltbHelper.classList.toggle('hidden', title.length < 2);
-  els.hltbIconLink.classList.toggle('hidden', title.length < 2);
-
-  clearTimeout(state.hltb.timer);
-  if (title.length < 2) {
-    setHltbIdle();
-    return;
-  }
-
-  els.hltbStatus.textContent = state.hltb.client
-    ? 'Ищу примерную длительность…'
-    : 'Автопоиск сейчас недоступен. Можно открыть HLTB вручную.';
-
-  if (!state.hltb.client || title.length < 3) return;
-
-  const token = ++state.hltb.activeToken;
-  state.hltb.timer = setTimeout(() => fetchAndApplyHltb(title, token), 650);
+  updateHltbLink(els.titleInput.value.trim());
 }
 
-function onEstimatedHoursInput() {
-  const value = els.estimatedHoursInput.value.trim();
-  state.hltb.manualHours = value !== '' && String(state.hltb.lastAutoValue ?? '') !== value;
-}
-
-function updateHltbLinks(title) {
-  const target = title || '';
-  const searchUrl = hltbSearchUrl(target);
-  els.hltbSearchLink.href = searchUrl;
-  els.hltbIconLink.href = searchUrl;
-}
-
-function setHltbIdle() {
-  els.hltbHelper.classList.add('hidden');
-  els.hltbIconLink.classList.add('hidden');
-  els.hltbStatus.textContent = 'Начни вводить название — и сайт попробует заполнить примерную длительность автоматически.';
-  els.estimatedHoursMeta.textContent = 'Поле можно заполнить автоматически или изменить вручную.';
-}
-
-async function fetchAndApplyHltb(title, token) {
-  try {
-    const result = await findBestHltbMatch(title);
-    if (token !== state.hltb.activeToken) return;
-
-    if (!result) {
-      els.hltbStatus.textContent = `Не получилось заполнить длительность автоматически. Можно открыть HLTB вручную.`;
-      els.estimatedHoursMeta.textContent = 'Если автопоиск не сработал, поле можно заполнить вручную.';
-      return;
-    }
-
-    const shouldApply = !els.estimatedHoursInput.value.trim() || !state.hltb.manualHours || String(state.hltb.lastAutoValue ?? '') === els.estimatedHoursInput.value.trim();
-    if (shouldApply && result.hours) {
-      els.estimatedHoursInput.value = String(result.hours);
-      state.hltb.lastAutoValue = result.hours;
-      state.hltb.manualHours = false;
-    }
-
-        els.hltbStatus.textContent = `Примерная длительность заполнена автоматически: ${result.hours} ч.`;
-    els.estimatedHoursMeta.textContent = 'Поле заполнено автоматически. При необходимости значение можно изменить вручную.';
-  } catch (error) {
-    console.warn('HLTB search failed', error);
-    if (token !== state.hltb.activeToken) return;
-    els.hltbStatus.textContent = 'Не удалось получить данные автоматически. Открыть точный поиск всё ещё можно через HLTB.';
-    els.estimatedHoursMeta.textContent = 'Если HLTB временно недоступен, поле заполняется вручную.';
-  }
-}
-
-async function findBestHltbMatch(title) {
-  const client = state.hltb.client;
-  if (!client) return null;
-
-  const withTimeout = (promise, ms = 8000) => Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('HLTB timeout')), ms))
-  ]);
-
-  const results = await withTimeout(client.search(title), 8000);
-  if (!Array.isArray(results) || !results.length) return null;
-
-  const normalizedTitle = normalizeTitle(title);
-  const scored = results.map((item) => {
-    const name = item.gameName || item.name || '';
-    const normalizedName = normalizeTitle(name);
-    let score = 0;
-    if (normalizedName === normalizedTitle) score += 100;
-    if (normalizedName.startsWith(normalizedTitle) || normalizedTitle.startsWith(normalizedName)) score += 40;
-    if (normalizedName.includes(normalizedTitle) || normalizedTitle.includes(normalizedName)) score += 25;
-    score -= Math.abs(normalizedName.length - normalizedTitle.length);
-    return { item, score };
-  }).sort((a, b) => b.score - a.score);
-
-  const best = scored[0]?.item;
-  if (!best) return null;
-
-  const mainExtra = numberOrNull(best.mainExtra ?? best.gameplayMainExtra);
-  const mainStory = numberOrNull(best.mainStory ?? best.gameplayMain);
-  const completionist = numberOrNull(best.completionist ?? best.gameplayCompletionist);
-  const hours = mainExtra || mainStory || completionist;
-  if (!hours) return null;
-
-  const label = mainExtra ? 'Main + Extra' : mainStory ? 'Main Story' : 'Completionist';
-  return {
-    name: best.gameName || title,
-    hours: Math.round(hours),
-    label
-  };
-}
-
-function numberOrNull(value) {
-  const num = Number(value);
-  return Number.isFinite(num) && num > 0 ? num : null;
-}
-
-function normalizeTitle(value) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/[:'".,!\-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function focusEstimatedHours() {
-  els.estimatedHoursInput.focus();
-  els.estimatedHoursInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+function updateHltbLink(title) {
+  const target = title.trim();
+  els.hltbIconLink.href = target ? hltbSearchUrl(target) : 'https://howlongtobeat.com/';
+  els.hltbIconLink.classList.toggle('hidden', target.length < 2);
 }
 
 function normalizeGame(game) {
@@ -620,10 +465,7 @@ async function submitRequest(event) {
   }
 
   els.submitForm.reset();
-  state.hltb.manualHours = false;
-  state.hltb.lastAutoValue = null;
-  updateHltbLinks('');
-  setHltbIdle();
+  updateHltbLink('');
   els.submitMessage.textContent = 'Заявка отправлена. После модерации она появится в очереди.';
   renderAll();
 }
