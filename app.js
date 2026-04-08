@@ -85,6 +85,7 @@ async function init() {
   await restoreSession();
   await setupHltbClient();
   await loadAll();
+  mountTwitchPlayer();
   renderAll();
   if (supabase) subscribeRealtime();
 }
@@ -1100,6 +1101,18 @@ function spotlightScore(game) {
   if (game.status === 'collecting') score += 200;
   if (game.scheduled_at) score += 100 - Math.min(99, Math.floor((new Date(game.scheduled_at).getTime() - Date.now()) / 86400000));
   return score;
+}
+
+
+function mountTwitchPlayer() {
+  const target = document.getElementById('twitch-player-embed');
+  if (!target) return;
+  const parent = window.location.hostname || 'localhost';
+  target.innerHTML = `<iframe
+    src="https://player.twitch.tv/?channel=alexbelog&parent=${encodeURIComponent(parent)}&autoplay=false"
+    allowfullscreen="true"
+    scrolling="no"
+    title="AlexBelog Twitch Player"></iframe>`;
 }
 
 function hltbSearchUrl(title) {

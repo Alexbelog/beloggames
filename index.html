@@ -31,9 +31,10 @@
 
       <nav class="nav desktop-nav">
         <a href="#queue">Очередь</a>
-        <a href="#completed">Пройденные</a>
+        <a href="#live">Стрим</a>
         <a href="#request-day">Request Day</a>
-        <a href="#support">Поддержка</a>
+        <a href="#support">Тарифы</a>
+        <a href="#completed">Пройденные</a>
         <a href="#support">Поддержка</a>
         <a href="#spotlight">Слоты</a>
         <a href="#submit">Заявка</a>
@@ -62,14 +63,14 @@
           <span class="eyebrow">GAME REQUEST</span>
           <h1>Очередь заявок на игры для стримов.</h1>
           <p class="hero-text">
-            Предложи игру, следи за очередью, поддерживай заявки и участвуй в субботнем Request Day с понятными форматами и прозрачными правилами.
+            Продуманная система заявок для стримов: очередь, субботний Request Day, платные форматы и подписочный слой для тех, кто хочет влиять на выбор игр активнее.
           </p>
           <div class="hero-actions">
             <a class="button primary" href="#submit">Оставить заявку</a>
             <a class="button" href="#queue">Открыть очередь</a>
-            <a class="button" href="#completed">Пройденные игры</a>
+            <a class="button" href="#live">Смотреть стрим</a>
             <a class="button" href="#request-day">Request Day</a>
-            <a class="button" href="#support">Поддержать заявку</a>
+            <a class="button" href="#support">Тарифы и поддержка</a>
           </div>
           <div class="stats-grid">
             <article class="stat-card"><strong id="stat-total">0</strong><span>заявок</span></article>
@@ -123,6 +124,7 @@
             <h3>Что нужно сделать зрителю</h3>
             <ul class="monetize-list">
               <li>Оставить заявку на игру.</li>
+              <li>Указать свой <strong>ник на Twitch</strong>.</li>
               <li>Дождаться модерации.</li>
               <li>Поддержать заявку донатом от 200 ₽ для первого взгляда.</li>
               <li>Следить за пулом субботнего эфира.</li>
@@ -167,7 +169,8 @@
               <li>1 бонусная заявка в месяц;</li>
               <li>участие в закрытом голосовании;</li>
               <li>небольшой приоритет для одной игры;</li>
-              <li>ранний доступ к списку Request Day.</li>
+              <li>ранний доступ к списку Request Day;</li>
+              <li>отдельную пометку в подписочном пуле заявок.</li>
             </ul>
           </article>
 
@@ -189,7 +192,7 @@
         <div class="section-head">
           <div>
             <span class="eyebrow">ПОДДЕРЖКА И ФОРМАТЫ</span>
-            <h2>Как поддержать игру и открыть платный формат</h2>
+            <h2>Тарифы, поддержка и апгрейд форматов</h2>
             <p class="section-text">Заявку можно оставить бесплатно. Донаты открывают форматы стримов и влияют на приоритет, а Request Day по субботам — это основной эфир для первых взглядов и тестовых запусков.</p>
           </div>
         </div>
@@ -201,7 +204,7 @@
               <span class="pill">DonateX / DA</span>
             </div>
             <h3>Поддержать заявку</h3>
-            <p>Отправь донат и укажи название игры. Поддержка влияет на приоритет в очереди и помогает игре быстрее попасть в эфир.</p>
+            <p>Отправь донат и укажи название игры плюс свой ник на Twitch. Поддержка влияет на приоритет в очереди и помогает игре быстрее попасть в эфир.</p>
             <div class="detail-actions">
               <a class="button primary" href="https://donatex.gg/donate/Alexbelog" target="_blank" rel="noopener">DonateX</a>
               <a class="button" href="https://www.donationalerts.com/r/alexbelog" target="_blank" rel="noopener">DonationAlerts</a>
@@ -270,53 +273,45 @@
           </article>
         </div>
       </div>
-    
-    <section class="section alt" id="pricing-advice">
-      <div class="container section-shell">
-        <div class="section-head">
-          <div>
-            <span class="eyebrow">РЕКОМЕНДАЦИИ ПО ПРАЙСУ</span>
-            <h2>Две более безопасные сетки цен</h2>
-            <p class="section-text">Текущая логика хорошая, но первые 8 и 24 часа у тебя стоят слишком дёшево. Ниже — две версии, которые лучше защищают твоё время и не ломают воронку входа.</p>
+
+<section class="section live-section" id="live">
+      <div class="container live-layout">
+        <div class="panel live-player-shell">
+          <div class="section-head compact-head">
+            <div>
+              <span class="eyebrow">LIVE</span>
+              <h2>Стрим AlexBelog прямо на сайте</h2>
+              <p class="section-text">Здесь можно сразу открыть Twitch-плеер, а рядом посмотреть, как работает Request Day и что нужно написать в заявке.</p>
+            </div>
+          </div>
+          <div class="twitch-player-wrap">
+            <div id="twitch-player-embed" class="twitch-player-embed"></div>
           </div>
         </div>
 
-        <div class="monetization-grid pricing-grid">
-          <article class="panel monetize-card pricing-card featured">
+        <aside class="live-side-stack">
+          <article class="panel premium-note-card">
             <div class="card-top">
-              <span class="pill accent">ВАРИАНТ 1</span>
-              <span class="pill">мягкий старт</span>
+              <span class="pill accent">REQUEST DAY PASS</span>
+              <span class="pill">подписочный слой</span>
             </div>
-            <h3>Осторожное повышение</h3>
+            <h3>Как попасть в подписочную модель</h3>
             <ul class="monetize-list">
-              <li>Первый взгляд — бесплатно, до 60 минут эфира · после одобрения</li>
-              <li>Игра на стрим — <strong>3000 ₽</strong>, до 8 часов эфира</li>
-              <li>Мини-серия — <strong>6000 ₽</strong>, до 3 стримов / до 24 часов эфира</li>
-              <li>Полное прохождение — база <strong>6000 ₽</strong> за первые 24 часа + <strong>500 ₽</strong> за каждый следующий час</li>
+              <li>оформи подписку / клубную поддержку;</li>
+              <li>в заявке обязательно укажи свой <strong>ник на Twitch</strong>;</li>
+              <li>если заявка идёт через Request Day Pass — отметь это в описании или комментарии к донату;</li>
+              <li>после этого игра попадает в подписочный пул и голосования.</li>
             </ul>
           </article>
 
-          <article class="panel monetize-card pricing-card featured">
+          <article class="panel premium-note-card glass-accent">
             <div class="card-top">
-              <span class="pill accent">ВАРИАНТ 2</span>
-              <span class="pill">уверенный</span>
+              <span class="pill">КЛЮЧЕВОЕ</span>
             </div>
-            <h3>Более здоровая цена</h3>
-            <ul class="monetize-list">
-              <li>Первый взгляд — бесплатно, до 60 минут эфира · после одобрения</li>
-              <li>Игра на стрим — <strong>3500 ₽</strong>, до 8 часов эфира</li>
-              <li>Мини-серия — <strong>7000–8000 ₽</strong>, до 3 стримов / до 24 часов эфира</li>
-              <li>Полное прохождение — база <strong>7000 ₽</strong> за первые 24 часа + <strong>500–700 ₽</strong> за каждый следующий час</li>
-            </ul>
+            <h3>Что даёт подписка</h3>
+            <p>Подписка не заменяет модерацию и не покупает любую игру автоматически. Она даёт бонусы: приоритет, отдельный пул, доступ к голосованию и больше влияния на субботний эфир.</p>
           </article>
-
-          <article class="panel monetize-card rules-tone pricing-card wide-rules">
-            <div class="card-top">
-              <span class="pill">МОЙ СОВЕТ</span>
-            </div>
-            <p>Если хочешь сохранить низкий порог входа, бери <strong>вариант 1</strong>. Если аудитория уже готова поддерживать заказы осознанно, переходи на <strong>вариант 2</strong>. Самый рискованный пункт в твоём текущем прайсе — слишком дешёвые первые 8 и 24 часа.</p>
-          </article>
-        </div>
+        </aside>
       </div>
     </section>
 
@@ -421,8 +416,8 @@
               </div>
             </label>
             <label>
-              <span>Твой ник</span>
-              <input class="input" name="viewer_name" required placeholder="alex_viewer" />
+              <span>Твой ник на Twitch</span>
+              <input class="input" name="viewer_name" required placeholder="alexbelog_viewer" />
             </label>
           </div>
           <div class="grid two">
@@ -458,6 +453,10 @@
             <span>Нюансы</span>
             <textarea class="input textarea compact" name="notes" placeholder="18+, язык, кооп, моды, технические риски и т.д."></textarea>
           </label>
+          <div class="premium-form-note panel">
+            <strong>Для Request Day Pass</strong>
+            <p>Если заявка идёт через подписочный формат, обязательно укажи свой ник на Twitch и напиши в описании или комментарии к донату, что это заявка для <strong>Request Day Pass</strong>.</p>
+          </div>
           <button class="button primary wide" type="submit">Отправить заявку</button>
           <p id="submit-message" class="form-message"></p>
         </form>
@@ -524,9 +523,10 @@
         <a href="https://www.twitch.tv/alexbelog" target="_blank" rel="noopener">Twitch</a>
         <a href="#submit">Заявка</a>
         <a href="#queue">Очередь</a>
-        <a href="#completed">Пройденные</a>
+        <a href="#live">Стрим</a>
         <a href="#request-day">Request Day</a>
-        <a href="#support">Поддержка</a>
+        <a href="#support">Тарифы</a>
+        <a href="#completed">Пройденные</a>
       </div>
     </div>
   </footer>

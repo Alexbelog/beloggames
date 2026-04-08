@@ -836,3 +836,109 @@ label > span { color: var(--text); font-size: 0.92rem; }
     grid-column: span 1;
   }
 }
+
+
+/* v4.6 premium layout + twitch */
+.live-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.75fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.live-side-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.live-player-shell {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+}
+
+.twitch-player-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at top, rgba(169,112,255,0.14), transparent 40%),
+    rgba(255,255,255,0.03);
+}
+
+.twitch-player-embed,
+.twitch-player-embed iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.premium-note-card,
+.premium-form-note {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.premium-note-card h3,
+.premium-note-card p,
+.premium-form-note p {
+  margin: 0;
+}
+
+.glass-accent {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)),
+    radial-gradient(circle at top right, rgba(169,112,255,0.16), transparent 50%);
+}
+
+.request-pass-grid .featured,
+.pricing-grid .featured,
+.monetization-grid .featured {
+  position: relative;
+  overflow: hidden;
+}
+
+.request-pass-grid .featured::before,
+.pricing-grid .featured::before,
+.monetization-grid .featured::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(169,112,255,0.18), transparent 38%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  pointer-events: none;
+}
+
+.request-card,
+.pass-card,
+.monetize-card {
+  border-radius: 22px;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.18);
+}
+
+.pass-card h3,
+.request-card h3,
+.monetize-card h3 {
+  letter-spacing: -0.03em;
+}
+
+.premium-form-note {
+  border: 1px solid rgba(169,112,255,0.22);
+  background: rgba(169,112,255,0.06);
+}
+
+.brand-text-single strong {
+  font-size: 1rem;
+}
+
+@media (max-width: 1080px) {
+  .live-layout {
+    grid-template-columns: 1fr;
+  }
+}
