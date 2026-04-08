@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Created by AlexBelog</title>
-  <meta name="description" content="Минималистичный сайт очереди заявок на игры для стримов" />
+  <title>AlexBelog Game Request</title>
+  <meta name="description" content="Минималистичный сайт очереди заявок и списка пройденных игр для стримов" />
   <meta name="theme-color" content="#0e1015" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,21 +17,21 @@
 
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="#home" aria-label="Created by AlexBelog">
+      <a class="brand" href="#home" aria-label="AlexBelog Game Request">
         <span class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M5 3L3 8v10h6v3l3-3h4l5-5V3H5Z" fill="currentColor"/>
             <path d="M10 8v4M15 8v4" stroke="#0e1015" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </span>
-        <span class="brand-text">
-          <strong>Created by</strong>
-          <small>AlexBelog</small>
+        <span class="brand-text brand-text-single">
+          <strong>AlexBelog Game Request</strong>
         </span>
       </a>
 
       <nav class="nav desktop-nav">
         <a href="#queue">Очередь</a>
+        <a href="#completed">Пройденные</a>
         <a href="#spotlight">Слоты</a>
         <a href="#submit">Заявка</a>
         <a href="#rules">Правила</a>
@@ -59,17 +59,18 @@
           <span class="eyebrow">GAME REQUEST</span>
           <h1>Очередь заявок на игры для стримов.</h1>
           <p class="hero-text">
-            Предложи игру, посмотри статус заявки и при необходимости быстро открой HowLongToBeat прямо из формы.
+            Предложи игру, следи за очередью и смотри архив уже пройденных игр с моей оценкой.
           </p>
           <div class="hero-actions">
             <a class="button primary" href="#submit">Оставить заявку</a>
             <a class="button" href="#queue">Открыть очередь</a>
+            <a class="button" href="#completed">Пройденные игры</a>
           </div>
           <div class="stats-grid">
             <article class="stat-card"><strong id="stat-total">0</strong><span>заявок</span></article>
             <article class="stat-card"><strong id="stat-approved">0</strong><span>одобрено</span></article>
             <article class="stat-card"><strong id="stat-scheduled">0</strong><span>назначено</span></article>
-            <article class="stat-card"><strong id="stat-done">0</strong><span>завершено</span></article>
+            <article class="stat-card"><strong id="stat-completed">0</strong><span>пройдено</span></article>
           </div>
         </div>
 
@@ -119,13 +120,26 @@
       </div>
     </section>
 
+    <section class="section alt" id="completed">
+      <div class="container section-shell">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">ПРОЙДЕННЫЕ ИГРЫ</span>
+            <h2>Архив пройденных игр и мои оценки</h2>
+            <p class="section-text">Отдельный список уже завершённых игр. Здесь будут карточки с постером, датой и рейтингом от 1 до 10.</p>
+          </div>
+        </div>
+        <div id="completed-list" class="completed-list"></div>
+      </div>
+    </section>
+
     <section class="section alt" id="submit">
       <div class="container form-layout">
         <div class="form-copy">
           <span class="eyebrow">НОВАЯ ЗАЯВКА</span>
           <h2>Предложить игру</h2>
           <p class="section-text">
-            Форма сделана максимально короткой. Введи название, а время сайт попробует заполнить сам через HLTB. Если автопоиск не сработает, поле всегда можно поправить вручную.
+            Форма максимально простая: введи игру, укажи базовые детали и отправь заявку.
           </p>
           <div class="info-cards">
             <article class="mini-card">
@@ -134,11 +148,11 @@
             </article>
             <article class="mini-card">
               <strong>HLTB</strong>
-              <p>Мини-значок рядом с названием открывает страницу поиска игры на HowLongToBeat.</p>
+              <p>Сначала впиши название, затем нажми кнопку HLTB справа, чтобы сразу открыть поиск этой игры на HowLongToBeat.</p>
             </article>
             <article class="mini-card">
-              <strong>Важно</strong>
-              <p>Автодлительность — это ориентир. Финальное решение по очереди остаётся за стримером.</p>
+              <strong>Очередь</strong>
+              <p>После модерации игра появится в публичной очереди и получит свой статус.</p>
             </article>
           </div>
         </div>
@@ -167,7 +181,6 @@
             <label>
               <span>Примерная длительность, часов</span>
               <input id="estimated-hours-input" class="input" name="estimated_hours" type="number" min="1" max="500" placeholder="Например: 25" />
-              
             </label>
           </div>
           <div class="grid two">
@@ -240,13 +253,14 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>
-        <strong>Created by AlexBelog</strong>
+        <strong>AlexBelog Game Request</strong>
         <p></p>
       </div>
       <div class="footer-links">
         <a href="https://www.twitch.tv/alexbelog" target="_blank" rel="noopener">Twitch</a>
         <a href="#submit">Заявка</a>
         <a href="#queue">Очередь</a>
+        <a href="#completed">Пройденные</a>
       </div>
     </div>
   </footer>
@@ -261,8 +275,8 @@
     </div>
   </dialog>
 
-  <dialog id="admin-modal" class="modal">
-    <div class="modal-card">
+  <dialog id="admin-modal" class="modal wide-modal">
+    <div class="modal-card admin-wide">
       <div class="modal-head">
         <h3>Админка</h3>
         <button id="close-admin" class="icon-btn" aria-label="Закрыть">✕</button>
@@ -291,14 +305,88 @@
         <div class="admin-toolbar">
           <div>
             <strong id="admin-user"></strong>
-            <p class="muted">Управление заявками, слотами и приоритетом</p>
+            <p class="muted">Управление заявками и списком пройденных игр</p>
           </div>
           <div class="actions-row wrap">
             <button id="seed-demo" class="button ghost">Добавить демо</button>
             <button id="admin-signout" class="button">Выйти</button>
           </div>
         </div>
-        <div id="admin-list" class="admin-list"></div>
+
+        <section class="admin-block">
+          <div class="section-head compact-head">
+            <div>
+              <span class="eyebrow">ЗАЯВКИ</span>
+              <h2>Управление очередью</h2>
+            </div>
+          </div>
+          <div id="admin-list" class="admin-list"></div>
+        </section>
+
+        <section class="admin-block">
+          <div class="section-head compact-head">
+            <div>
+              <span class="eyebrow">ПРОЙДЕННЫЕ ИГРЫ</span>
+              <h2>Добавить игру в архив</h2>
+            </div>
+          </div>
+
+          <form id="completed-form" class="panel completed-form-panel">
+            <div class="grid two">
+              <label>
+                <span>Название игры</span>
+                <input id="completed-title-input" class="input" name="title" required placeholder="Например: Lies of P" />
+              </label>
+              <label>
+                <span>Жанр</span>
+                <input class="input" name="genre" placeholder="soulslike, action RPG..." />
+              </label>
+            </div>
+            <div class="grid two">
+              <label>
+                <span>Дата прохождения</span>
+                <input class="input" name="completed_at" type="date" />
+              </label>
+              <label>
+                <span>Оценка</span>
+                <select id="completed-score" class="input select" name="score">
+                  <option value="10">10 / 10</option>
+                  <option value="9">9 / 10</option>
+                  <option value="8">8 / 10</option>
+                  <option value="7">7 / 10</option>
+                  <option value="6">6 / 10</option>
+                  <option value="5">5 / 10</option>
+                  <option value="4">4 / 10</option>
+                  <option value="3">3 / 10</option>
+                  <option value="2">2 / 10</option>
+                  <option value="1">1 / 10</option>
+                </select>
+              </label>
+            </div>
+            <div class="grid two admin-completed-grid">
+              <label>
+                <span>Короткий комментарий</span>
+                <textarea class="input textarea compact" name="review" placeholder="Что понравилось или чем игра запомнилась"></textarea>
+              </label>
+              <div class="poster-preview-wrap">
+                <span>Постер из HLTB</span>
+                <div class="poster-preview panel">
+                  <img id="completed-poster-preview" alt="" class="hidden" />
+                  <div id="completed-poster-empty" class="muted">После ввода названия постер попробует подтянуться автоматически из HLTB.</div>
+                </div>
+              </div>
+            </div>
+            <input id="completed-poster-url" name="poster_url" type="hidden" />
+            <div class="actions-row wrap">
+              <button class="button primary" type="submit">Добавить в пройденные</button>
+              <button id="refresh-completed-poster" class="button" type="button">Обновить постер</button>
+              <a id="completed-hltb-link" class="button ghost icon-button" href="https://howlongtobeat.com/" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span>Открыть</a>
+            </div>
+            <p id="completed-form-message" class="form-message"></p>
+          </form>
+
+          <div id="admin-completed-list" class="admin-list admin-completed-list"></div>
+        </section>
       </div>
     </div>
   </dialog>

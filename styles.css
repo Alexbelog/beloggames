@@ -175,7 +175,8 @@ label > span { color: var(--text); font-size: 0.92rem; }
   color: var(--text);
   transition: 160ms ease;
 }
-.button:hover, .icon-btn:hover, .hltb-icon-link:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.22); }
+.button:hover, .icon-btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.22); }
+.hltb-icon-link:hover { border-color: rgba(255,255,255,0.22); transform: translateY(-50%); }
 .button.primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #0e1015;
@@ -311,3 +312,206 @@ label > span { color: var(--text); font-size: 0.92rem; }
 .hltb-icon-link { flex:0 0 auto; }
 .footer-inner p:empty { display:none; }
 @media (max-width: 1180px) { .form-layout-wide { grid-template-columns: 1fr; } }
+
+
+/* v4 completed games */
+.brand-text-single strong { font-size: 0.98rem; line-height: 1; }
+.section-text { color: var(--muted); max-width: 760px; }
+.compact-head { margin-bottom: 14px; }
+.admin-wide { max-width: min(1160px, calc(100vw - 32px)); }
+.admin-block + .admin-block { margin-top: 26px; }
+.full { grid-column: 1 / -1; }
+
+.completed-list {
+  display: grid;
+  gap: 16px;
+}
+
+.completed-card {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255,255,255,0.03);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+}
+
+.completed-poster,
+.admin-thumb,
+.completed-modal-poster {
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+}
+
+.completed-poster {
+  width: 116px;
+  height: 148px;
+}
+
+.completed-poster img,
+.admin-thumb img,
+.completed-modal-poster img,
+.poster-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.poster-fallback {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at top, rgba(169,112,255,0.18), transparent 55%),
+    rgba(255,255,255,0.03);
+  color: #dfd2ff;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.completed-main {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.completed-main h3,
+.completed-side .score-text {
+  margin: 0;
+}
+
+.completed-main p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.completed-side {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+  align-content: center;
+}
+
+.stars-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.star {
+  color: rgba(255,255,255,0.15);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.star.filled {
+  color: #f4d56d;
+  text-shadow: 0 0 18px rgba(244,213,109,0.2);
+}
+
+.large-stars .star {
+  font-size: 1.3rem;
+}
+
+.score-text,
+.score-badge {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(244,213,109,0.35);
+  background: rgba(244,213,109,0.08);
+}
+
+.completed-actions {
+  justify-content: flex-end;
+}
+
+.completed-detail-columns {
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+}
+
+.completed-modal-poster {
+  width: 220px;
+  height: 300px;
+}
+
+.completed-form-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.poster-preview-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.poster-preview {
+  min-height: 196px;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+}
+
+.poster-preview img {
+  border-radius: 14px;
+}
+
+.admin-completed-grid {
+  align-items: start;
+}
+
+.admin-completed-item-grid {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-thumb {
+  width: 120px;
+  height: 156px;
+}
+
+.admin-completed-list {
+  margin-top: 16px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 980px) {
+  .completed-card,
+  .admin-completed-item-grid,
+  .completed-detail-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .completed-poster,
+  .admin-thumb,
+  .completed-modal-poster {
+    width: 100%;
+    max-width: 240px;
+    justify-self: start;
+  }
+
+  .completed-side {
+    justify-items: start;
+  }
+}

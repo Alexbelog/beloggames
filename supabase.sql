@@ -46,3 +46,45 @@ create policy "authenticated users can delete requests"
   on public.game_requests
   for delete
   using (auth.role() = 'authenticated');
+
+create table if not exists public.completed_games (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  genre text,
+  score integer not null default 7 check (score between 1 and 10),
+  review text,
+  poster_url text,
+  hltb_url text,
+  completed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_completed_games_completed_at on public.completed_games(completed_at desc);
+create index if not exists idx_completed_games_score on public.completed_games(score desc);
+
+alter table public.completed_games enable row level security;
+
+drop policy if exists "public can read completed games" on public.completed_games;
+create policy "public can read completed games"
+  on public.completed_games
+  for select
+  using (true);
+
+drop policy if exists "authenticated users can insert completed games" on public.completed_games;
+create policy "authenticated users can insert completed games"
+  on public.completed_games
+  for insert
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "authenticated users can update completed games" on public.completed_games;
+create policy "authenticated users can update completed games"
+  on public.completed_games
+  for update
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "authenticated users can delete completed games" on public.completed_games;
+create policy "authenticated users can delete completed games"
+  on public.completed_games
+  for delete
+  using (auth.role() = 'authenticated');
