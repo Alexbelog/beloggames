@@ -1,50 +1,42 @@
+const SUPABASE_URL = 'PASTE_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'PASTE_SUPABASE_ANON_KEY';
+const hasSupabaseConfig = !SUPABASE_URL.includes('PASTE_') && !SUPABASE_ANON_KEY.includes('PASTE_');
+const supabase = hasSupabaseConfig ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
 const STATUS_META = {
-  pending: { label: 'На рассмотрении', className: 'warn' },
-  approved: { label: 'Одобрено', className: 'accent' },
-  collecting: { label: 'Собирает приоритет', className: '' },
-  scheduled: { label: 'Назначено', className: 'accent' },
-  live: { label: 'Идёт на стриме', className: 'accent' },
-  done: { label: 'Пройдено', className: '' },
-  dropped: { label: 'Дропнуто', className: 'danger' },
-  rejected: { label: 'Отклонено', className: 'danger' }
-};
-
-const DEMO_GAMES = [
-  {
-    title: 'Lies of P: Overture', viewer_name: 'chat', genre: 'Soulslike', estimated_hours: 12,
-    desired_format: 'Мини-серия', reason: 'Идеально ложится под вайб канала и обсуждения билдов.',
-    notes: 'После релиза DLC.', priority_points: 84, status: 'approved', scheduled_at: null
-  },
-  {
-    title: 'Buckshot Roulette', viewer_name: 'bear', genre: 'Horror / Roguelike', estimated_hours: 3,
-    desired_format: 'Слот на 1 стрим', reason: 'Короткая, мемная и отлично зайдёт на один плотный вечер.',
-    notes: '', priority_points: 61, status: 'scheduled', scheduled_at: '2026-04-18T19:00:00+03:00'
-  },
-  {
-    title: 'Blasphemous 2', viewer_name: 'fox', genre: 'Metroidvania', estimated_hours: 14,
-    desired_format: 'Первый взгляд', reason: 'Сильная атмосфера и нормальный темп для стрима.',
-    notes: 'Нужно проверить локализацию.', priority_points: 49, status: 'collecting', scheduled_at: null
-  }
-];
-
-const CONFIG = window.APP_CONFIG || {
-  supabaseUrl: 'PASTE_SUPABASE_URL',
-  supabaseAnonKey: 'PASTE_SUPABASE_ANON_KEY'
+  pending: { label: 'На рассмотрении', public: false },
+  approved: { label: 'Одобрено', public: true },
+  collecting: { label: 'Собирает приоритет', public: true },
+  scheduled: { label: 'Назначено', public: true },
+  live: { label: 'Идёт на стриме', public: true },
+  done: { label: 'Завершено', public: true },
+  dropped: { label: 'Дропнуто', public: true },
+  rejected: { label: 'Отклонено', public: false }
 };
 
 const els = {
   queueGrid: document.getElementById('queue-grid'),
   scheduledList: document.getElementById('scheduled-list'),
+  spotlightCard: document.getElementById('spotlight-card'),
+  submitForm: document.getElementById('submit-form'),
+  titleInput: document.getElementById('game-title-input'),
+  estimatedHoursInput: document.getElementById('estimated-hours-input'),
+  hltbHelper: document.getElementById('hltb-helper'),
+  hltbSearchLink: document.getElementById('hltb-search-link'),
+  useHltbHours: document.getElementById('use-hltb-hours'),
+  submitMessage: document.getElementById('submit-message'),
   searchInput: document.getElementById('search-input'),
   statusFilter: document.getElementById('status-filter'),
   sortSelect: document.getElementById('sort-select'),
-  submitForm: document.getElementById('submit-form'),
-  submitMessage: document.getElementById('submit-message'),
+  statTotal: document.getElementById('stat-total'),
   statApproved: document.getElementById('stat-approved'),
   statScheduled: document.getElementById('stat-scheduled'),
   statDone: document.getElementById('stat-done'),
-  adminModal: document.getElementById('admin-modal'),
+  gameModal: document.getElementById('game-modal'),
+  gameModalContent: document.getElementById('game-modal-content'),
+  closeGameModal: document.getElementById('close-game-modal'),
   openAdmin: document.getElementById('open-admin'),
+  adminModal: document.getElementById('admin-modal'),
   closeAdmin: document.getElementById('close-admin'),
   adminAuthBox: document.getElementById('admin-auth-box'),
   adminPanel: document.getElementById('admin-panel'),
@@ -53,101 +45,83 @@ const els = {
   adminSignin: document.getElementById('admin-signin'),
   adminMagic: document.getElementById('admin-magic'),
   adminSignout: document.getElementById('admin-signout'),
-  authMessage: document.getElementById('auth-message'),
-  adminList: document.getElementById('admin-list'),
   adminUser: document.getElementById('admin-user'),
+  adminList: document.getElementById('admin-list'),
+  authMessage: document.getElementById('auth-message'),
   seedDemo: document.getElementById('seed-demo')
 };
 
-let supabase = null;
-let state = { games: [], session: null, filters: { query: '', status: 'all', sort: 'priority' } };
+const state = {
+  games: [],
+  session: null,
+  filters: {
+    query: '',
+    status: 'all',
+    sort: 'priority'
+  }
+};
 
-function canUseSupabase() {
-  return CONFIG.supabaseUrl && CONFIG.supabaseAnonKey &&
-    !CONFIG.supabaseUrl.includes('PASTE_') && !CONFIG.supabaseAnonKey.includes('PASTE_');
-}
-
-function formatDate(value) {
-  if (!value) return 'Дата не назначена';
-  return new Date(value).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-function escapeHtml(str = '') {
-  return str.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-}
-
-function statusBadge(status) {
-  const meta = STATUS_META[status] || STATUS_META.pending;
-  return `<span class="pill ${meta.className}">${meta.label}</span>`;
-}
-
-function normalizeGame(game) {
-  return {
-    id: game.id,
-    title: game.title || 'Без названия',
-    viewer_name: game.viewer_name || 'anon',
-    genre: game.genre || 'Не указан',
-    estimated_hours: game.estimated_hours || null,
-    desired_format: game.desired_format || 'Первый взгляд',
-    reason: game.reason || '',
-    notes: game.notes || '',
-    priority_points: Number(game.priority_points || 0),
-    status: game.status || 'pending',
-    reference_url: game.reference_url || '',
-    scheduled_at: game.scheduled_at || null,
-    created_at: game.created_at || new Date().toISOString()
-  };
-}
+init();
 
 async function init() {
   populateStatusFilter();
   bindEvents();
-  if (canUseSupabase()) {
-    supabase = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
-    await restoreSession();
-    await loadGames();
-  } else {
-    loadLocalGames();
-    els.submitMessage.textContent = 'Сайт запущен в demo mode. Для реальной базы подключи Supabase в app.js.';
-  }
+  await restoreSession();
+  await loadGames();
   renderAll();
-}
-
-function loadLocalGames() {
-  const stored = localStorage.getItem('alexbelog_v2_games');
-  const parsed = stored ? JSON.parse(stored) : DEMO_GAMES.map((g, i) => ({ ...g, id: crypto.randomUUID?.() || String(i + 1), created_at: new Date().toISOString() }));
-  state.games = parsed.map(normalizeGame);
-  localStorage.setItem('alexbelog_v2_games', JSON.stringify(state.games));
-}
-
-function saveLocalGames() {
-  localStorage.setItem('alexbelog_v2_games', JSON.stringify(state.games));
+  if (supabase) subscribeRealtime();
 }
 
 async function restoreSession() {
+  if (!supabase) return;
   const { data } = await supabase.auth.getSession();
   state.session = data.session;
-  renderAdminAuth();
   supabase.auth.onAuthStateChange((_event, session) => {
     state.session = session;
     renderAdminAuth();
+    renderAdminList();
   });
 }
 
+function subscribeRealtime() {
+  supabase.channel('public:game_requests')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'game_requests' }, async () => {
+      await loadGames();
+      renderAll();
+    })
+    .subscribe();
+}
+
 async function loadGames() {
+  if (!supabase) {
+    loadLocalGames();
+    return;
+  }
   const { data, error } = await supabase
     .from('game_requests')
     .select('*')
-    .order('priority_points', { ascending: false })
     .order('created_at', { ascending: false });
 
   if (error) {
     console.error(error);
-    els.submitMessage.textContent = 'Не удалось загрузить данные из Supabase. Проверь настройки и таблицу.';
+    els.submitMessage.textContent = 'Не удалось загрузить данные из Supabase. Включён demo mode.';
     loadLocalGames();
     return;
   }
   state.games = data.map(normalizeGame);
+}
+
+function loadLocalGames() {
+  const raw = localStorage.getItem('alexbelog-v3-games');
+  if (raw) {
+    state.games = JSON.parse(raw).map(normalizeGame);
+    return;
+  }
+  seedLocalGames(false);
+}
+
+function saveLocalGames() {
+  localStorage.setItem('alexbelog-v3-games', JSON.stringify(state.games));
 }
 
 function populateStatusFilter() {
@@ -160,56 +134,130 @@ function populateStatusFilter() {
 }
 
 function bindEvents() {
-  els.searchInput.addEventListener('input', e => { state.filters.query = e.target.value.trim().toLowerCase(); renderQueue(); });
-  els.statusFilter.addEventListener('change', e => { state.filters.status = e.target.value; renderQueue(); });
-  els.sortSelect.addEventListener('change', e => { state.filters.sort = e.target.value; renderQueue(); });
+  els.searchInput.addEventListener('input', (e) => {
+    state.filters.query = e.target.value.trim().toLowerCase();
+    renderQueue();
+  });
+  els.statusFilter.addEventListener('change', (e) => {
+    state.filters.status = e.target.value;
+    renderQueue();
+  });
+  els.sortSelect.addEventListener('change', (e) => {
+    state.filters.sort = e.target.value;
+    renderQueue();
+  });
   els.submitForm.addEventListener('submit', submitRequest);
+  els.titleInput.addEventListener('input', updateHltbHelper);
+  els.useHltbHours.addEventListener('click', focusEstimatedHours);
+
   els.openAdmin.addEventListener('click', () => els.adminModal.showModal());
   els.closeAdmin.addEventListener('click', () => els.adminModal.close());
+  els.closeGameModal.addEventListener('click', () => els.gameModal.close());
   els.adminSignin.addEventListener('click', signInAdmin);
   els.adminMagic.addEventListener('click', sendMagicLink);
-  els.adminSignout.addEventListener('click', async () => { if (supabase) await supabase.auth.signOut(); else state.session = null; renderAdminAuth(); });
-  els.seedDemo.addEventListener('click', seedDemoData);
+  els.adminSignout.addEventListener('click', async () => {
+    if (supabase) await supabase.auth.signOut();
+    else state.session = null;
+    renderAdminAuth();
+  });
+  els.seedDemo.addEventListener('click', () => seedLocalGames(true));
+
+  updateHltbHelper();
+
+  els.gameModal.addEventListener('click', (e) => {
+    const rect = els.gameModal.getBoundingClientRect();
+    const inDialog = rect.top <= e.clientY && e.clientY <= rect.top + rect.height && rect.left <= e.clientX && e.clientX <= rect.left + rect.width;
+    if (!inDialog) els.gameModal.close();
+  });
+}
+
+function updateHltbHelper() {
+  const title = els.titleInput?.value?.trim() || '';
+  const hasQuery = title.length >= 2;
+  els.hltbHelper.classList.toggle('hidden', !hasQuery);
+  const encoded = encodeURIComponent(`site:howlongtobeat.com ${title}`);
+  els.hltbSearchLink.href = `https://www.google.com/search?q=${encoded}`;
+  els.hltbSearchLink.textContent = hasQuery ? `Найти "${title}" в HLTB` : 'Найти в HLTB';
+}
+
+function focusEstimatedHours() {
+  els.estimatedHoursInput?.focus();
+  els.estimatedHoursInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function normalizeGame(game) {
+  return {
+    id: game.id || crypto.randomUUID(),
+    title: game.title || 'Без названия',
+    viewer_name: game.viewer_name || 'зритель',
+    genre: game.genre || 'не указан',
+    estimated_hours: game.estimated_hours || null,
+    desired_format: game.desired_format || 'Первый взгляд',
+    reference_url: game.reference_url || '',
+    reason: game.reason || '',
+    notes: game.notes || '',
+    priority_points: Number(game.priority_points || 0),
+    status: game.status || 'pending',
+    scheduled_at: game.scheduled_at || null,
+    created_at: game.created_at || new Date().toISOString()
+  };
 }
 
 function filteredGames() {
-  let items = [...state.games];
+  let items = [...state.games].filter(g => g.status !== 'rejected');
   const q = state.filters.query;
   if (q) {
-    items = items.filter(g => [g.title, g.genre, g.viewer_name].join(' ').toLowerCase().includes(q));
+    items = items.filter(g => [g.title, g.genre, g.viewer_name, g.reason].join(' ').toLowerCase().includes(q));
   }
   if (state.filters.status !== 'all') {
     items = items.filter(g => g.status === state.filters.status);
   }
-  if (state.filters.sort === 'newest') items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  if (state.filters.sort === 'title') items.sort((a, b) => a.title.localeCompare(b.title, 'ru'));
-  if (state.filters.sort === 'priority') items.sort((a, b) => b.priority_points - a.priority_points || new Date(b.created_at) - new Date(a.created_at));
+
+  switch (state.filters.sort) {
+    case 'title':
+      items.sort((a, b) => a.title.localeCompare(b.title, 'ru'));
+      break;
+    case 'newest':
+      items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      break;
+    case 'scheduled':
+      items.sort((a, b) => {
+        const aTime = a.scheduled_at ? new Date(a.scheduled_at).getTime() : Number.MAX_SAFE_INTEGER;
+        const bTime = b.scheduled_at ? new Date(b.scheduled_at).getTime() : Number.MAX_SAFE_INTEGER;
+        return aTime - bTime || b.priority_points - a.priority_points;
+      });
+      break;
+    default:
+      items.sort((a, b) => b.priority_points - a.priority_points || new Date(b.created_at) - new Date(a.created_at));
+  }
   return items;
 }
 
 function renderAll() {
   renderQueue();
   renderScheduled();
+  renderSpotlight();
   renderStats();
   renderAdminAuth();
   renderAdminList();
 }
 
 function renderQueue() {
-  const items = filteredGames().filter(g => g.status !== 'rejected');
+  const items = filteredGames().filter(g => STATUS_META[g.status]?.public);
   if (!items.length) {
-    els.queueGrid.innerHTML = '<div class="empty-state">Пока ничего не найдено.</div>';
+    els.queueGrid.innerHTML = '<div class="empty-state">Пока здесь пусто. Добавь демо-данные в админке или отправь первую заявку.</div>';
     return;
   }
+
   els.queueGrid.innerHTML = items.map(game => `
-    <article class="queue-card">
+    <article class="queue-card" data-id="${game.id}">
       <div class="card-top">
         ${statusBadge(game.status)}
         <span class="pill">${game.priority_points} очков</span>
       </div>
       <div>
         <h3>${escapeHtml(game.title)}</h3>
-        <p>${escapeHtml(game.reason)}</p>
+        <p>${escapeHtml(truncate(game.reason, 160))}</p>
       </div>
       <div class="pill-row">
         <span class="pill">${escapeHtml(game.genre)}</span>
@@ -220,43 +268,151 @@ function renderQueue() {
         <span>${game.estimated_hours ? `${game.estimated_hours} ч` : 'время не указано'}</span>
       </div>
       ${game.scheduled_at ? `<div class="meta-row"><span>Слот</span><span>${formatDate(game.scheduled_at)}</span></div>` : ''}
-      ${game.reference_url ? `<a class="button ghost small" href="${escapeHtml(game.reference_url)}" target="_blank" rel="noopener">Открыть ссылку</a>` : ''}
+      <div class="detail-actions">
+        <button class="button ghost small open-game" data-id="${game.id}">Подробнее</button>
+        <a class="button small" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener">HLTB</a>
+        ${game.reference_url ? `<a class="button small" href="${escapeHtml(game.reference_url)}" target="_blank" rel="noopener">Ссылка</a>` : ''}
+      </div>
     </article>
   `).join('');
+
+  document.querySelectorAll('.open-game').forEach(btn => btn.addEventListener('click', () => openGameModal(btn.dataset.id)));
 }
 
 function renderScheduled() {
   const items = [...state.games]
-    .filter(g => g.status === 'scheduled' || g.status === 'live')
-    .sort((a, b) => new Date(a.scheduled_at || 0) - new Date(b.scheduled_at || 0))
-    .slice(0, 4);
+    .filter(g => ['scheduled', 'live', 'collecting'].includes(g.status))
+    .sort((a, b) => {
+      const aTime = a.scheduled_at ? new Date(a.scheduled_at).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTime = b.scheduled_at ? new Date(b.scheduled_at).getTime() : Number.MAX_SAFE_INTEGER;
+      return aTime - bTime || b.priority_points - a.priority_points;
+    })
+    .slice(0, 6);
+
   if (!items.length) {
-    els.scheduledList.innerHTML = '<div class="empty-state">Пока нет назначенных слотов.</div>';
+    els.scheduledList.innerHTML = '<div class="empty-state">Пока нет слотов. Назначь их из админки или добавь демо-данные.</div>';
     return;
   }
+
   els.scheduledList.innerHTML = items.map(game => `
-    <article class="scheduled-item">
+    <article class="scheduled-card">
       <div class="card-top">
-        <strong>${escapeHtml(game.title)}</strong>
         ${statusBadge(game.status)}
+        <span class="pill">${game.priority_points} очков</span>
       </div>
+      <h3>${escapeHtml(game.title)}</h3>
       <p class="muted">${escapeHtml(game.desired_format)} · ${escapeHtml(game.genre)}</p>
-      <p>${formatDate(game.scheduled_at)}</p>
+      <p>${game.scheduled_at ? formatDate(game.scheduled_at) : 'Дата ещё не назначена'}</p>
+      <button class="button ghost small open-game" data-id="${game.id}">Открыть карточку</button>
     </article>
   `).join('');
+
+  document.querySelectorAll('.scheduled-card .open-game').forEach(btn => btn.addEventListener('click', () => openGameModal(btn.dataset.id)));
+}
+
+function renderSpotlight() {
+  const candidate = [...state.games]
+    .filter(g => ['live', 'scheduled', 'collecting', 'approved'].includes(g.status))
+    .sort((a, b) => {
+      const scoreA = spotlightScore(a);
+      const scoreB = spotlightScore(b);
+      return scoreB - scoreA;
+    })[0];
+
+  if (!candidate) {
+    els.spotlightCard.innerHTML = '<div class="spotlight-empty">Пока нет кандидатов для главного слота. Добавь заявки или демо-данные.</div>';
+    return;
+  }
+
+  els.spotlightCard.innerHTML = `
+    <div class="card-top">
+      ${statusBadge(candidate.status)}
+      <span class="pill">${candidate.priority_points} очков</span>
+    </div>
+    <div>
+      <h2 class="spotlight-title">${escapeHtml(candidate.title)}</h2>
+      <p class="hero-text">${escapeHtml(truncate(candidate.reason, 220))}</p>
+    </div>
+    <div class="spotlight-meta">
+      <span class="pill">${escapeHtml(candidate.genre)}</span>
+      <span class="pill">${escapeHtml(candidate.desired_format)}</span>
+      <span class="pill">От ${escapeHtml(candidate.viewer_name)}</span>
+    </div>
+    ${candidate.scheduled_at ? `<p><strong>Слот:</strong> ${formatDate(candidate.scheduled_at)}</p>` : '<p><strong>Слот:</strong> ещё не назначен</p>'}
+    <div class="detail-actions">
+      <button class="button primary small" id="open-spotlight">Подробнее</button>
+      <a class="button ghost small" href="${hltbSearchUrl(candidate.title)}" target="_blank" rel="noopener">HowLongToBeat</a>
+      ${candidate.reference_url ? `<a class="button ghost small" href="${escapeHtml(candidate.reference_url)}" target="_blank" rel="noopener">Открыть ссылку</a>` : ''}
+    </div>
+  `;
+
+  document.getElementById('open-spotlight').addEventListener('click', () => openGameModal(candidate.id));
+}
+
+function spotlightScore(game) {
+  let score = game.priority_points;
+  if (game.status === 'live') score += 1000;
+  if (game.status === 'scheduled') score += 600;
+  if (game.status === 'collecting') score += 200;
+  if (game.scheduled_at) score += 100 - Math.min(99, Math.floor((new Date(game.scheduled_at).getTime() - Date.now()) / 86400000));
+  return score;
 }
 
 function renderStats() {
+  els.statTotal.textContent = state.games.length;
   els.statApproved.textContent = state.games.filter(g => ['approved', 'collecting'].includes(g.status)).length;
   els.statScheduled.textContent = state.games.filter(g => ['scheduled', 'live'].includes(g.status)).length;
   els.statDone.textContent = state.games.filter(g => g.status === 'done').length;
 }
 
+function openGameModal(id) {
+  const game = state.games.find(item => item.id === id);
+  if (!game) return;
+  els.gameModalContent.innerHTML = `
+    <div class="detail-panel">
+      <div class="card-top">
+        ${statusBadge(game.status)}
+        <span class="pill">${game.priority_points} очков</span>
+      </div>
+      <div class="detail-columns">
+        <div>
+          <h2 class="detail-title">${escapeHtml(game.title)}</h2>
+          <p class="detail-text">${escapeHtml(game.reason || 'Описание пока не заполнено.')}</p>
+          <div class="detail-grid">
+            <span class="pill">Жанр: ${escapeHtml(game.genre)}</span>
+            <span class="pill">Формат: ${escapeHtml(game.desired_format)}</span>
+            <span class="pill">Заявка от: ${escapeHtml(game.viewer_name)}</span>
+            <span class="pill">Длительность: ${game.estimated_hours ? `${game.estimated_hours} ч` : 'не указана'}</span>
+          </div>
+        </div>
+        <aside class="panel">
+          <strong>Детали заявки</strong>
+          <div class="stack gap" style="margin-top:12px;">
+            <div><span class="muted">Создано</span><br>${formatDate(game.created_at)}</div>
+            <div><span class="muted">Слот</span><br>${game.scheduled_at ? formatDate(game.scheduled_at) : 'ещё не назначен'}</div>
+            <div><span class="muted">Нюансы</span><br>${escapeHtml(game.notes || 'не указаны')}</div>
+          </div>
+        </aside>
+      </div>
+      <div class="detail-actions">
+        <a class="button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener">Искать в HowLongToBeat</a>
+        ${game.reference_url ? `<a class="button primary" href="${escapeHtml(game.reference_url)}" target="_blank" rel="noopener">Открыть ссылку на игру</a>` : ''}
+        <button class="button ghost" id="close-from-detail">Закрыть</button>
+      </div>
+    </div>
+  `;
+  els.gameModal.showModal();
+  document.getElementById('close-from-detail')?.addEventListener('click', () => els.gameModal.close());
+}
+
 function renderAdminAuth() {
-  const logged = Boolean(state.session);
+  const logged = Boolean(state.session) || !supabase;
   els.adminAuthBox.classList.toggle('hidden', logged);
   els.adminPanel.classList.toggle('hidden', !logged);
-  els.adminUser.textContent = logged ? (state.session.user.email || 'admin') : '';
+  els.adminUser.textContent = state.session?.user?.email || (supabase ? '' : 'demo admin (local mode)');
+  if (!supabase) {
+    els.authMessage.textContent = 'Supabase не настроен, поэтому админка работает в demo mode через localStorage.';
+  }
 }
 
 function renderAdminList() {
@@ -270,21 +426,21 @@ function renderAdminList() {
       <div class="card-top">
         <div>
           <strong>${escapeHtml(game.title)}</strong>
-          <div class="muted">${escapeHtml(game.viewer_name)} · ${escapeHtml(game.genre)}</div>
+          <div class="muted">${escapeHtml(game.viewer_name)} · ${escapeHtml(game.genre)} · ${formatDate(game.created_at)}</div>
         </div>
         ${statusBadge(game.status)}
       </div>
+      <p class="muted">${escapeHtml(game.reason)}</p>
       <div class="admin-grid">
         <label><span>Приоритет</span><input class="input" data-field="priority_points" type="number" value="${game.priority_points}" /></label>
-        <label><span>Статус</span>
-          <select class="input select" data-field="status">${Object.entries(STATUS_META).map(([key, meta]) => `<option value="${key}" ${key === game.status ? 'selected' : ''}>${meta.label}</option>`).join('')}</select>
-        </label>
+        <label><span>Статус</span><select class="input select" data-field="status">${Object.entries(STATUS_META).map(([key, meta]) => `<option value="${key}" ${game.status === key ? 'selected' : ''}>${meta.label}</option>`).join('')}</select></label>
         <label><span>Формат</span><input class="input" data-field="desired_format" value="${escapeHtml(game.desired_format)}" /></label>
         <label><span>Дата слота</span><input class="input" data-field="scheduled_at" type="datetime-local" value="${toDateTimeLocal(game.scheduled_at)}" /></label>
-        <button class="button primary save-game">Сохранить</button>
+        <label><span>Ссылка</span><input class="input" data-field="reference_url" value="${escapeHtml(game.reference_url)}" /></label>
+        <label><span>Жанр</span><input class="input" data-field="genre" value="${escapeHtml(game.genre)}" /></label>
       </div>
-      <p class="muted">${escapeHtml(game.reason)}</p>
-      <div class="actions-row">
+      <div class="detail-actions">
+        <button class="button primary save-game">Сохранить</button>
         <button class="button ghost delete-game">Удалить</button>
       </div>
     </article>
@@ -292,13 +448,6 @@ function renderAdminList() {
 
   document.querySelectorAll('.save-game').forEach(btn => btn.addEventListener('click', handleAdminSave));
   document.querySelectorAll('.delete-game').forEach(btn => btn.addEventListener('click', handleAdminDelete));
-}
-
-function toDateTimeLocal(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 async function submitRequest(event) {
@@ -313,51 +462,57 @@ async function submitRequest(event) {
     const { error } = await supabase.from('game_requests').insert([payload]);
     if (error) {
       console.error(error);
-      els.submitMessage.textContent = 'Ошибка сохранения. Проверь таблицу и RLS policy.';
+      els.submitMessage.textContent = 'Ошибка сохранения. Проверь таблицу и RLS policy в Supabase.';
       return;
     }
     await loadGames();
   } else {
-    state.games.unshift(normalizeGame({ ...payload, id: crypto.randomUUID?.() || String(Date.now()), created_at: new Date().toISOString() }));
+    state.games.unshift(normalizeGame(payload));
     saveLocalGames();
   }
 
   els.submitForm.reset();
-  els.submitMessage.textContent = 'Заявка отправлена.';
+  updateHltbHelper();
+  els.submitMessage.textContent = 'Заявка отправлена. После модерации она появится в очереди.';
   renderAll();
 }
 
 async function signInAdmin() {
   if (!supabase) {
-    els.authMessage.textContent = 'Подключи Supabase, чтобы использовать реальную авторизацию.';
+    state.session = { user: { email: 'demo@local' } };
+    renderAdminAuth();
     return;
   }
   const email = els.adminEmail.value.trim();
-  const password = els.adminPassword.value;
+  const password = els.adminPassword.value.trim();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   els.authMessage.textContent = error ? error.message : 'Вход выполнен.';
 }
 
 async function sendMagicLink() {
   if (!supabase) {
-    els.authMessage.textContent = 'Подключи Supabase, чтобы использовать magic link.';
+    els.authMessage.textContent = 'Magic link доступен только после настройки Supabase.';
     return;
   }
   const email = els.adminEmail.value.trim();
-  const redirectTo = window.location.href;
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
-  els.authMessage.textContent = error ? error.message : 'Ссылка для входа отправлена.';
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.href }
+  });
+  els.authMessage.textContent = error ? error.message : 'Magic link отправлен на почту.';
 }
 
 async function handleAdminSave(event) {
   const article = event.target.closest('.admin-item');
   const id = article.dataset.id;
   const payload = {};
-  article.querySelectorAll('[data-field]').forEach(el => {
-    payload[el.dataset.field] = el.value || null;
+  article.querySelectorAll('[data-field]').forEach(input => {
+    let value = input.value;
+    if (input.dataset.field === 'priority_points') value = Number(value || 0);
+    if (input.dataset.field === 'scheduled_at' && value) value = new Date(value).toISOString();
+    if (input.dataset.field === 'scheduled_at' && !value) value = null;
+    payload[input.dataset.field] = value;
   });
-  payload.priority_points = Number(payload.priority_points || 0);
-  payload.scheduled_at = payload.scheduled_at ? new Date(payload.scheduled_at).toISOString() : null;
 
   if (supabase) {
     const { error } = await supabase.from('game_requests').update(payload).eq('id', id);
@@ -367,7 +522,7 @@ async function handleAdminSave(event) {
     }
     await loadGames();
   } else {
-    state.games = state.games.map(g => g.id === id ? normalizeGame({ ...g, ...payload }) : g);
+    state.games = state.games.map(game => game.id === id ? normalizeGame({ ...game, ...payload }) : game);
     saveLocalGames();
   }
   renderAll();
@@ -386,25 +541,128 @@ async function handleAdminDelete(event) {
     }
     await loadGames();
   } else {
-    state.games = state.games.filter(g => g.id !== id);
+    state.games = state.games.filter(game => game.id !== id);
     saveLocalGames();
   }
   renderAll();
 }
 
-async function seedDemoData() {
-  if (supabase) {
-    const { error } = await supabase.from('game_requests').insert(DEMO_GAMES);
-    if (error) {
-      els.authMessage.textContent = error.message;
-      return;
+function seedLocalGames(showMessage = true) {
+  state.games = [
+    {
+      id: crypto.randomUUID(),
+      title: 'Blasphemous 2',
+      viewer_name: 'soul_digger',
+      genre: 'metroidvania / soulslike',
+      estimated_hours: 14,
+      desired_format: 'Мини-серия',
+      reference_url: 'https://store.steampowered.com/',
+      reason: 'Подходит по вайбу канала: мрачная атмосфера, сложные боссы и хорошие моменты для клипов.',
+      notes: 'Есть кровь и жестокость, но без критичных рисков для стрима.',
+      priority_points: 320,
+      status: 'scheduled',
+      scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString()
+    },
+    {
+      id: crypto.randomUUID(),
+      title: 'Fear & Hunger',
+      viewer_name: 'grimviewer',
+      genre: 'dark RPG',
+      estimated_hours: 8,
+      desired_format: 'Первый взгляд',
+      reference_url: '',
+      reason: 'Очень мемный и жёсткий проект, который может зайти как отдельный спец-стрим, но требует аккуратной модерации.',
+      notes: 'Нужно проверить допустимость контента перед эфиром.',
+      priority_points: 250,
+      status: 'collecting',
+      scheduled_at: null,
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString()
+    },
+    {
+      id: crypto.randomUUID(),
+      title: 'Lies of P: DLC',
+      viewer_name: 'bearlair_sub',
+      genre: 'soulslike',
+      estimated_hours: 10,
+      desired_format: 'Полное прохождение',
+      reference_url: '',
+      reason: 'Максимально попадает в основной игровой профиль канала и почти наверняка зайдёт постоянной аудитории.',
+      notes: 'Можно ставить в большой слот или мини-марафон.',
+      priority_points: 470,
+      status: 'approved',
+      scheduled_at: null,
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString()
+    },
+    {
+      id: crypto.randomUUID(),
+      title: 'Elden Ring Randomizer',
+      viewer_name: 'cliphunter',
+      genre: 'challenge / soulslike',
+      estimated_hours: 20,
+      desired_format: 'Слот на 1 стрим',
+      reference_url: '',
+      reason: 'Сильный формат под челлендж и клипы, особенно если заранее упаковать правила и цель забега.',
+      notes: 'Проверить стабильность модов до стрима.',
+      priority_points: 610,
+      status: 'live',
+      scheduled_at: new Date().toISOString(),
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString()
+    },
+    {
+      id: crypto.randomUUID(),
+      title: 'Darkest Dungeon II',
+      viewer_name: 'rottenhero',
+      genre: 'roguelite',
+      estimated_hours: 18,
+      desired_format: 'Мини-серия',
+      reference_url: '',
+      reason: 'Подойдёт как формат на несколько вечеров: жёстко, напряжённо и с высоким шансом на драму в чате.',
+      notes: '',
+      priority_points: 185,
+      status: 'done',
+      scheduled_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 18).toISOString()
     }
-    await loadGames();
-  } else {
-    state.games = [...DEMO_GAMES.map((g, i) => normalizeGame({ ...g, id: crypto.randomUUID?.() || `demo-${i}`, created_at: new Date().toISOString() })), ...state.games];
-    saveLocalGames();
-  }
+  ].map(normalizeGame);
+  saveLocalGames();
   renderAll();
+  if (showMessage) els.authMessage.textContent = 'Демо-данные добавлены.';
 }
 
-init();
+function hltbSearchUrl(title) {
+  return `https://www.google.com/search?q=${encodeURIComponent(`site:howlongtobeat.com ${title || ''}`)}`;
+}
+
+function statusBadge(status) {
+  const meta = STATUS_META[status] || { label: status };
+  return `<span class="badge ${status}">${meta.label}</span>`;
+}
+
+function formatDate(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  }).format(date);
+}
+
+function toDateTimeLocal(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function truncate(text, max) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
