@@ -313,8 +313,17 @@ label > span { color: var(--text); font-size: 0.92rem; }
 
 @media (max-width: 720px) {
   .grid.two, .stats-grid, .queue-grid, .scheduled-list, .info-cards, .rules-grid, .admin-grid { grid-template-columns: 1fr; }
-  .header-inner, .queue-head, .section-head, .footer-inner, .meta-row, .helper-card, .admin-toolbar { flex-direction: column; align-items: stretch; }
+  .header-inner, .queue-head, .section-head, .footer-inner, .meta-row, .admin-toolbar { flex-direction: column; align-items: stretch; }
   .header-actions, .filters, .detail-actions { flex-wrap: wrap; }
   .hero-copy h1 { max-width: 100%; }
   .reveal-card, .panel, .form-panel, .queue-card, .scheduled-card { padding: 20px; }
 }
+
+
+.form-layout-wide { grid-template-columns: minmax(280px, 0.9fr) minmax(760px, 1.35fr); align-items: start; }
+.title-input-wrap { display:flex; align-items:center; gap:10px; }
+.title-input-wrap .input { flex:1; }
+.hltb-icon-link { flex:0 0 auto; }
+.helper-card { align-items:center; }
+.footer-inner p:empty { display:none; }
+@media (max-width: 1180px) { .form-layout-wide { grid-template-columns: 1fr; } }

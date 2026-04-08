@@ -243,8 +243,8 @@ function updateHltbLinks(title) {
 function setHltbIdle() {
   els.hltbHelper.classList.add('hidden');
   els.hltbIconLink.classList.add('hidden');
-  els.hltbStatus.textContent = 'Начни вводить название — и сайт попробует найти примерную длительность автоматически.';
-  els.estimatedHoursMeta.textContent = 'Можно оставить автозначение или поменять вручную.';
+  els.hltbStatus.textContent = 'Начни вводить название — и сайт попробует заполнить примерную длительность автоматически.';
+  els.estimatedHoursMeta.textContent = 'Поле можно заполнить автоматически или изменить вручную.';
 }
 
 async function fetchAndApplyHltb(title, token) {
@@ -253,7 +253,7 @@ async function fetchAndApplyHltb(title, token) {
     if (token !== state.hltb.activeToken) return;
 
     if (!result) {
-      els.hltbStatus.textContent = `Для «${title}» точное совпадение не найдено. Можно открыть HLTB вручную.`;
+      els.hltbStatus.textContent = `Не получилось заполнить длительность автоматически. Можно открыть HLTB вручную.`;
       els.estimatedHoursMeta.textContent = 'Если автопоиск не сработал, поле можно заполнить вручную.';
       return;
     }
@@ -265,9 +265,8 @@ async function fetchAndApplyHltb(title, token) {
       state.hltb.manualHours = false;
     }
 
-    const durationLabel = result.label ? `${result.label}: ${result.hours} ч` : `${result.hours} ч`;
-    els.hltbStatus.textContent = `Найдено: ${result.name}. ${durationLabel}.`;
-    els.estimatedHoursMeta.textContent = `Автозаполнение из HLTB: ${durationLabel}. Поле можно изменить вручную.`;
+        els.hltbStatus.textContent = `Примерная длительность заполнена автоматически: ${result.hours} ч.`;
+    els.estimatedHoursMeta.textContent = 'Поле заполнено автоматически. При необходимости значение можно изменить вручную.';
   } catch (error) {
     console.warn('HLTB search failed', error);
     if (token !== state.hltb.activeToken) return;
@@ -420,7 +419,7 @@ function renderQueue() {
       ${game.scheduled_at ? `<div class="meta-row"><span>Слот</span><span>${formatDate(game.scheduled_at)}</span></div>` : ''}
       <div class="detail-actions">
         <button class="button ghost small open-game" data-id="${game.id}">Подробнее</button>
-        <a class="button small icon-button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span></a>
+        <a class="button small icon-button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span> </a>
         ${game.reference_url ? `<a class="button small" href="${escapeHtml(game.reference_url)}" target="_blank" rel="noopener">Ссылка</a>` : ''}
       </div>
     </article>
@@ -455,7 +454,7 @@ function renderScheduled() {
       <p>${game.scheduled_at ? formatDate(game.scheduled_at) : 'Дата ещё не назначена'}</p>
       <div class="detail-actions">
         <button class="button ghost small open-game" data-id="${game.id}">Открыть</button>
-        <a class="button small icon-button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span></a>
+        <a class="button small icon-button" href="${hltbSearchUrl(game.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span> </a>
       </div>
     </article>
   `).join('');
@@ -490,7 +489,7 @@ function renderSpotlight() {
     ${candidate.scheduled_at ? `<p><strong>Слот:</strong> ${formatDate(candidate.scheduled_at)}</p>` : '<p><strong>Слот:</strong> ещё не назначен</p>'}
     <div class="detail-actions">
       <button class="button primary small" id="open-spotlight">Подробнее</button>
-      <a class="button ghost small icon-button" href="${hltbSearchUrl(candidate.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span></a>
+      <a class="button ghost small icon-button" href="${hltbSearchUrl(candidate.title)}" target="_blank" rel="noopener"><span class="hltb-mini">HLTB</span> </a>
       ${candidate.reference_url ? `<a class="button ghost small" href="${escapeHtml(candidate.reference_url)}" target="_blank" rel="noopener">Ссылка</a>` : ''}
     </div>
   `;
@@ -783,7 +782,7 @@ function seedLocalGames(showMessage = true) {
 }
 
 function hltbSearchUrl(title) {
-  return `https://www.google.com/search?q=${encodeURIComponent(`site:howlongtobeat.com ${title || ''}`)}`;
+  return `https://howlongtobeat.com/?q=${encodeURIComponent(title || '')}`;
 }
 
 function statusBadge(status) {
